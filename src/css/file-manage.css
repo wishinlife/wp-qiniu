@@ -1,0 +1,148 @@
+/*
+ * version: 1.0.0
+ */
+
+a{text-decoration:none;}
+
+/*html,body{background-color:#fff;background-attachment:fixed;}
+#opt-on-qiniu-tabs{padding:0 1em 0 1em;border-bottom:1px solid #dedede;margin-bottom:1em;font-size:1.1em;
+	width:100%;
+	position:fixed;
+	_position:absolute;
+	left:0;
+	top:0;
+	_top:expression(documentElement.scrollTop);
+	background:#fff;
+}
+#opt-on-qiniu-tabs .right{margin-right:3em;}
+#files-on-qiniu{margin:10px;}
+*/
+.opt-ctl-tabs{
+    display: inline-block;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    margin: 12px 0 25px;
+    padding: 0 10px;
+    width: 100%;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    border: 1px solid #e5e5e5;
+    background-color: #fff;
+    color: #555;
+    font-size: 13px;
+}
+.file-on-qiniu{
+	width:120px;
+	height:128px;
+	overflow:hidden;
+	float:left;
+	margin:5px;
+	padding:2px;
+	background-color:#ffffff;
+	cursor: pointer;
+	box-shadow: 1px 1px 2px 2px rgba(90, 90, 90, 0.3);
+}
+.file-on-qiniu:hover {
+	background-color:#eeeeee;
+	box-shadow: 0px 0px 1px 2px rgba(135, 206, 250, 0.7);
+}
+.file-thumbnail{width:120px;height:100px;padding-top:5px;overflow:hidden;text-align:center;vertical-align:middle;display:table-cell;}/*background-color:#ccc;*/
+.file-thumbnail img{max-width:100%;height:auto;vertical-align:middle;}
+.selected, .selected:hover{
+	font-style: italic;
+	font-weight: bold;
+	background-color: rgba(82, 169, 252, 0.26);
+	box-shadow: 0px 0px 1px 2px rgb(138, 211, 255);
+}
+.file-name{line-height:1em;margin-top:3px;text-align:center;word-break:break-all;}
+
+.alert{color:#D44B25;margin:0 10px;padding-bottom:20px;}
+.hidden{display:none;}
+.page-navi{text-decoration:none;text-align:center;background-color:#E62114;color: #ffffff;cursor:pointer;padding:10px;margin-top: 30px;font-size: 11pt;
+	border-radius: 10px;
+	box-shadow: 0 1px 0 rgba(243, 243, 243, 0.75);
+}
+.page-navi:hover{background-color:#1BA933;}
+.page-navi-disable{text-decoration:none;text-align:center;background-color:darkgray;color: #eeeeee;padding:10px;margin-top: 30px;font-size: 11pt;
+	border-radius: 4px;
+	box-shadow: 0 1px 0 rgba(243, 243, 243, 0.75);
+}
+#rename-file{width:118px;height:16px;line-height:16px;border:0;background:#fff;padding:0;}
+#back-to-top-btn{
+	position:fixed;
+	display:block;
+	bottom:28px;
+	right:15px!important;
+	width:50px;
+	line-height:50px;
+	border:1px solid #aaa;
+	text-align:center;
+	vertical-align:middle;
+	background-color: rgba(120, 225, 176, 0.29);
+	filter:alpha(opacity=90);
+	opacity:0.9;
+}
+#back-to-top-btn:hover{background-color: rgba(31, 205, 65, 0.5);color:#fff;filter:alpha(opacity=90);opacity:0.9;}
+/*选择文件按钮样式*/
+#upload-pickfiles{
+	display:block;
+	width: 350px;
+	height:200px;
+	margin: 30px auto;
+	border-radius: 10px;
+	border:2px dashed #ddd;
+	overflow: hidden;
+	cursor: pointer;
+}
+
+#upload-pickfiles span{
+	display:block;
+	width:50px;
+	height:50px;
+	border-radius: 100%;
+	border:3px solid #0983C7;
+	margin:60px auto 15px;
+	position:relative;
+}
+#upload-pickfiles em{
+	font-style: normal;
+	text-align: center;
+	display:block;
+}
+#upload-pickfiles span:before,#upload-pickfiles span:after{
+	display:block;
+	content:'';
+	background-color: #0983C7;
+	position: absolute;
+}
+#upload-pickfiles span:before{
+	width:3px;
+	height:30px;
+	top:10px;
+	left:24px;
+}
+#upload-pickfiles span:after{
+	width:30px;
+	height:3px;
+	top:24px;
+	left:10px;
+}
+#upload-pickfiles:hover,#upload-pickfiles:active
+{
+	background-color:#fff;
+	border-color: #dcdcdc;
+	-webkit-box-shadow:none;
+	box-shadow:none;
+}
+#upload-pickfiles.draging{
+	background-color:#fff;
+	border-color:#999999;
+}
+/* 导航条 */
+.link-Active{margin: 0px 5px 0px 5px;}
+.link-Disabled,.link-Disabled:hover,.link-Disabled:visited,.link-Disabled:active
+{
+	cursor: default;
+	margin: 0px 5px 0px 5px;
+	color: #777777;
+}

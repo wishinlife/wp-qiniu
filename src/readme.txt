@@ -1,0 +1,79 @@
+﻿=== WP-QINIU （WordPress连接到七牛云存储） ===
+Contributors: wishinlife
+Donate link: http://www.syncy.cn/index.php/donate/
+Tags:wp-qiniu, backup, sync, qiniu, object cloud storage, 七牛云存储
+Requires at least: 4.5.0
+Tested up to: 4.7.3
+Stable tag: 1.3.0
+License: GPLv2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
+
+备份WordPress到七牛云存储，把七牛云存储作为网站附件存储空间。
+
+== Description ==
+
+<strong>WP-QINIU主要功能就是把WordPress和七牛云存储连接在一起的插件。</strong>
+
+<strong>主要功能：</strong>
+
+* 1、将wordpress的数据库、文件备份到七牛对象云存储，以防止由于过失而丢失了网站数据；
+* 2、把七牛对象云存储作为网站的主要存储空间，存放图片、附件，解决网站空间不够用的烦恼；
+* 3、可在网站内直接引用七牛云存储上的文件，在写文章时直接点击插入媒体，选择要插入的图片、音频、视频、附件等即可，增强wordpress用户使用七牛云存储的方便性；
+* 4、可在wordpress中以目录的形式管理七牛云存储的文件，并可以通过修改文件夹名称来批量修改七牛云存储中文件的Key，方便用户管理文件。
+
+七牛云存储官网地址：http://www.qiniu.com
+
+WP-QINIU官方网站：http://www.syncy.cn
+
+<strong>备份功能不适用的环境</strong>
+
+* 开启MULTISITE的多站点网站
+* 网站空间剩余不足三分之一
+* 没有读写权限或读写权限受限制的空间
+* 服务器memory limit, time limit比较小，又不能自己修改的
+* 主机PHP不支持ZipArchive类
+
+
+== Installation ==
+
+* 1、把wp-qiniu文件夹上传到/wp-content/plugins/目录下<br />
+* 2、在后台插件列表中激活wp-qiniu<br />
+* 3、在“插件->WP-QINIU”菜单中输入七牛云存储的AK、SK等设置项并保存（设置项需与七牛云存储设置对应）<br />
+* 4、如果在BAE上备份不成功，可修改wordpress根目录下的wp-cron.php，在文件开头增加语句“set_time_limit(0);”看能否正常备份。
+
+== Frequently Asked Questions ==
+
+* 1.当发现插件出错时，开启调试获取错误信息。
+* 2.定时备份，在规定的时间，将网站打包备份到云存储。
+* 3.开启了原图保护的，视频、音频、附件访问链接有效时间4个小时。
+* 4.在文章编辑页面“添加媒体”按钮后的媒体管理面板中选择插入七牛云存储中的附件。
+
+== Screenshots ==
+
+1. screenshot-1.png
+2. screenshot-2.png
+3. screenshot-3.png
+4. screenshot-4.png
+
+== Changelog ==
+
+= 1.3.0 =
+* 1、修复了与某些主题样式冲突，导致文件管理的操作区域样式显示不正常的bug。
+
+= 1.2.0 =
+* 1、修复了多站点支持功能bug。
+* 2、修复了在保存七牛云存储的AK和SK后仍报连接存储的错误。
+
+*  已知问题：只能通过每个子站点的插件管理分别启用WP-QINIU插件，不能通过站点管理里面的网络激活功能在所有站点上启用WP-QINIU插件，通过网络激活启用所有站点的WP-QINIU插件，将只有默认站点上能正常使用，在其他站点上管理文件时会报表***wp_qiniu_files不存在（***为子站点表前缀）。
+
+= 1.1.0 =
+* 1、增加与七牛云存储同步文件信息功能。
+* 2、mediaelement.js组件更新至4.0.2。
+
+= 1.0.0 =
+* 1、WP-QINIU正式发布。
+* 2、本插件中的音视频播放采用的是mediaelement.js组件，文件上传采用七牛js sdk和plupload组件。
+
+
+== Upgrade Notice ==
+* 
