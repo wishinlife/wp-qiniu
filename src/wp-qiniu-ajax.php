@@ -63,18 +63,18 @@ function wp_qiniu_get_uptoken_ajax(){
 	elseif(in_array($fileext,array('asf','avi','flv','mkv','mov','mp4','wmv','3gp','3g2','mpeg','ts','rm','rmvb','m3u8'))){
 		$filetype = 'video';
 	}
-	//$url = wp_qiniu_get_download_url($key, 14400);
+//	$url = wp_qiniu_get_download_url($key, 14400);
 	if($filetype == 'image'){
 		$callBackBody = 'pid='.$pid.'&fsize=$(fsize)&format=$(imageInfo.format)&width=$(imageInfo.width)&height=$(imageInfo.height)&mimeType=$(mimeType)&key=$(key)&hash=$(etag)';
-		//$returnBody = '{"url":"'.$url.'", "pid": $(x:pid), "fname": '.$fname.', "fsize": $(fsize), "key": $(key), "hash": $(etag), "id": 10, "ctime": '.time()
-		//					. ', "format": $(imageInfo.format), "width": $(imageInfo.width), "height": $(imageInfo.height), "mimeType": $(mimeType),"overwrite":$(x:overwrite)}';		//直接返回给上传端，不回调服务器
+//		$returnBody = '{"url":"'.$url.'", "pid": $(x:pid), "fname": '.$fname.', "fsize": $(fsize), "key": $(key), "hash": $(etag), "id": 10, "ctime": '.time()
+//							. ', "format": $(imageInfo.format), "width": $(imageInfo.width), "height": $(imageInfo.height), "mimeType": $(mimeType),"overwrite":$(x:overwrite)}';		//直接返回给上传端，不回调服务器
 	} elseif($filetype == 'video') {
 		$callBackBody = 'pid='.$pid.'&fsize=$(fsize)&format=$(avinfo.format.format_long_name)&width=$(avinfo.video.width)&height=$(avinfo.video.height)&mimeType=$(mimeType)&key=$(key)&hash=$(etag)';
-		//$returnBody = '{"url":"'.$url.'", "pid": $(x:pid), "fname": '.$fname.', "fsize": $(fsize), "key": $(key), "hash": $(etag), "id": 10, "ctime": '.time()
-		//					. ', "format": $(avinfo.format.format_long_name), "width": $(avinfo.video.width), "height": $(avinfo.video.height), "mimeType": $(mimeType),"overwrite":$(x:overwrite)}';		//直接返回给上传端，不回调服务器
+//		$returnBody = '{"url":"'.$url.'", "pid": $(x:pid), "fname": '.$fname.', "fsize": $(fsize), "key": $(key), "hash": $(etag), "id": 10, "ctime": '.time()
+//							. ', "format": $(avinfo.format.format_long_name), "width": $(avinfo.video.width), "height": $(avinfo.video.height), "mimeType": $(mimeType),"overwrite":$(x:overwrite)}';		//直接返回给上传端，不回调服务器
 	} else {
 		$callBackBody = 'pid='.$pid.'&fsize=$(fsize)&format=&width=0&height=0&mimeType=$(mimeType)&key=$(key)&hash=$(etag)';
-		//$returnBody = '{"url":"'.$url.'", "pid": $(x:pid), "fname": '.$fname.', "fsize": $(fsize), "key": $(key), "hash": $(etag), "id": 10, "ctime": '.time(). ', "mimeType": $(mimeType),"width":0,"height":0,"overwrite":$(x:overwrite)}';	//直接返回给上传端，不回调服务器
+//		$returnBody = '{"url":"'.$url.'", "pid": $(x:pid), "fname": '.$fname.', "fsize": $(fsize), "key": $(key), "hash": $(etag), "id": 10, "ctime": '.time(). ', "mimeType": $(mimeType),"width":0,"height":0,"overwrite":$(x:overwrite)}';	//直接返回给上传端，不回调服务器
 	}
 
 	// 上传文件到七牛后， 七牛将文件名和文件大小回调给业务服务器.
@@ -82,9 +82,10 @@ function wp_qiniu_get_uptoken_ajax(){
 	$policy = array(
 		'scop' => $scope,
 		'deadline' => $deadline,
+		'callbackBodyType' => 'application/x-www-form-urlencoded',
 		'callbackUrl' => admin_url('admin-ajax.php?action=wp_qiniu_upload_callback'),
 		'callbackBody' => $callBackBody
-		//'returnBody' => $returnBody
+//		'returnBody' => $returnBody
 	);
 	global $auth;
 	$uptoken = $auth->uploadToken($bucket, $key, $expires, $policy);
@@ -125,7 +126,7 @@ function wp_qiniu_upload_callback_ajax() {
 		global $wpdb;
 		$table_name = $wpdb->prefix.'wp_qiniu_files';
 		$ok = $wpdb->replace($table_name,array('pid' => $pid, 'isdir' => 0, 'fname' => $fname, 'fsize' => $fsize, 'ctime' => $ctime, 'width' => $width, 'height' => $height, 'mimeType' => $mimeType),
-			array('%u', '%d', '%s', '%d', '%s', '%d', '%d', '%s'));
+			array('%d', '%d', '%s', '%d', '%s', '%d', '%d', '%s'));
 		$id = $wpdb->insert_id;
 
 		if (!$ok)
@@ -142,6 +143,79 @@ function wp_qiniu_upload_callback_ajax() {
 		$resp = array('status' => 'failed', 'error' => '回调验证失败。');
 	}
 	echo json_encode($resp);
+	exit;
+}
+function wp_qiniu_upload_callback_ajax2() {
+	//  http://www.***.com/wp-content/plugins/wp-qiniu/callback.txt
+	$filename=dirname(__FILE__).'/callback.txt';
+	if ($fh = fopen($filename, "a")) {
+		fwrite($fh, "Start CallBack Process.\r\n");
+
+		//获取回调的body信息
+		$callbackBody = file_get_contents('php://input');
+		fwrite($fh, 'CallBackBody:'.$callbackBody."\r\n");
+		//回调的contentType
+		$contentType = 'application/x-www-form-urlencoded';
+		//回调的签名信息，可以验证该回调是否来自七牛
+		$authorization = $_SERVER['HTTP_AUTHORIZATION'];
+		fwrite($fh, 'authorization:'.$authorization."\r\n");
+		//七牛回调的url，具体可以参考：http://developer.qiniu.com/docs/v6/api/reference/security/put-policy.html
+
+		//$http_type = ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https')) ? 'https://' : 'http://';
+		$url = admin_url('admin-ajax.php?action=wp_qiniu_upload_callback');
+
+		global $auth;
+		$isQiniuCallback = $auth->verifyCallback($contentType, $authorization, $url, $callbackBody);
+		fwrite($fh, 'isQiniuCallback:'.(string)$isQiniuCallback."\r\n");
+
+		header('Content-Type: application/json');
+		if ($isQiniuCallback) {
+			//$resp = array('ret' => 'success');
+			//客户端上传文件成功，且回调正确
+			parse_str($callbackBody);
+
+			fwrite($fh, 'key:'.$key."\r\n");
+
+			$fname = basename($key);
+
+			fwrite($fh, 'pid:'.(string)$pid."\r\n");
+			fwrite($fh, 'fname:'.$fname."\r\n");
+			fwrite($fh, 'fsize:'.(string)$fsize."\r\n");
+			fwrite($fh, 'width:'.(string)$width."\r\n");
+			fwrite($fh, 'height:'.(string)$height."\r\n");
+			fwrite($fh, 'mimeType:'.$mimeType."\r\n");
+			fwrite($fh, 'format:'.$format."\r\n");
+			fwrite($fh, 'hash:'.$hash."\r\n");
+
+			set_php_setting('timezone');
+			$ctime = date('Y-m-d H:i:s',time());
+			fwrite($fh, 'ctime:'.$ctime."\r\n");
+
+			global $wpdb;
+			$table_name = $wpdb->prefix.'wp_qiniu_files';
+			$ok = $wpdb->replace($table_name,array('pid' => $pid, 'isdir' => 0, 'fname' => $fname, 'fsize' => $fsize, 'ctime' => $ctime, 'width' => $width, 'height' => $height, 'mimeType' => $mimeType),
+				array('%d', '%d', '%s', '%d', '%s', '%d', '%d', '%s'));
+			$id = $wpdb->insert_id;
+
+			fwrite($fh, 'ins_id:'.(string)$id."\r\n");
+			if (!$ok)
+			{
+				$err = $wpdb->last_error;
+				fwrite($fh, 'ins_err:'.$err."\r\n");
+				$resp = array('status' => 'false', 'error' => $err);
+				echo json_encode($resp);
+				exit;
+			}
+			$url = wp_qiniu_get_download_url($key, 3600);
+			$resp = array('status' => 'success','id' => $id, 'pid' => $pid, 'isdir' => 0, 'fname' => $fname, 'fsize' => $fsize, 'mimeType' => $mimeType,
+				'ctime' => $ctime, 'format' => $format, 'width' => $width, 'height' => $height, 'key' => $key, 'hash' => $hash, 'url' => $url);
+		} else {
+			$resp = array('status' => 'failed', 'error' => '回调验证失败。');
+		}
+		fwrite($fh, "\r\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\r\n\r\n");
+		fclose($fh);
+		echo json_encode($resp);
+	}
 	exit;
 }
 
@@ -266,7 +340,7 @@ function wp_qiniu_create_floder_ajax() {
 	}else {
 		$ok = $wpdb->insert($table_name,
 			array('pid' => $pid, 'isdir' => 1, 'fname' => $fname, 'fsize' => 0, 'ctime' => $ctime, 'width' => 0, 'height' => 0, 'mimeType' => ''),
-			array('%u', '%d', '%s', '%d', '%s', '%d', '%d', '%s'));
+			array('%d', '%d', '%s', '%d', '%s', '%d', '%d', '%s'));
 
 		if (!$ok) {
 			$err = $wpdb->last_error;

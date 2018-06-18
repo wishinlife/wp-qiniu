@@ -4,7 +4,7 @@
  * Plugin Name: WP-QINIU
  * Plugin URI: http://www.syncy.cn
  * Description: WP-QINIU主要功能就是把WordPress和七牛云存储连接在一起的插件。主要功能：1、将wordpress的数据库、文件备份到七牛对象云存储，以防止由于过失而丢失了网站数据；2、把七牛对象云存储作为网站的主要存储空间，存放图片、附件，解决网站空间不够用的烦恼；3、可在网站内直接引用七牛云存储上的文件，在写文章时直接点击插入媒体，选择要插入的图片、音频、视频、附件等即可，增强wordpress用户使用七牛云存储的方便性；4、可在wordpress中以目录的形式管理七牛云存储的文件，并可以通过修改文件夹名称来批量修改七牛云存储中文件的Key，方便用户管理文件。
- * Version: 1.3.0
+ * Version: 1.6.1
  * Text Domain: wp-qiniu
  * Author:   <a href="http://www.syncy.cn/">WishInLife</a>
  * Author URI: http://www.syncy.cn
@@ -18,7 +18,7 @@
  */
 // 初始化固定值常量
 define('WP_QINIU_PLUGIN_NAME', __FILE__);
-define('WP_QINIU_PLUGIN_VER', '1.3.0');
+define('WP_QINIU_PLUGIN_VER', '1.6.1');
 require_once( dirname( __FILE__ ) . '/lib/autoload.php' );
 use Qiniu\Auth;		// 引入鉴权类
 use Qiniu\Storage\UploadManager;	// 引入上传类
@@ -41,6 +41,8 @@ define('WP_QINIU_THUMBNAIL_STYLE', get_option('wp_qiniu_thumbnail_style'));
 define('WP_QINIU_WATERMARK_STYLE', get_option('wp_qiniu_watermark_style'));
 define('WP_QINIU_STYLE_SPLIT_CHAR', get_option('wp_qiniu_style_split_char'));
 define('WP_QINIU_IMAGE_PROTECT', get_option('wp_qiniu_image_protect'));
+define('WP_QINIU_ONLY_LOGOUSER', get_option('wp_qiniu_only_logouser'));
+define('WP_QINIU_USE_HTTPS', get_option('wp_qiniu_use_https'));
 
 define('WP_QINIU_SITE_DOMAIN', $_SERVER['HTTP_HOST']);
 //define('WP_QINIU_IS_WIN', strpos(PHP_OS,'WIN')!==false);
@@ -88,10 +90,16 @@ function wp_qiniu__filter_timeout_time($time){
 add_action('admin_menu','wp_qiniu_menu');
 function wp_qiniu_menu(){
     global $wp_qiniu_page, $wp_qiniu_page_storage;
-    $wp_qiniu_page = add_options_page('WordPress连接七牛云存储','WP-QINIU','edit_theme_options',WP_QINIU_PLUGIN_NAME,'wp_qiniu_pannel');
-    $wp_qiniu_page_storage = add_submenu_page('upload.php', 'WordPress连接七牛云存储', '七牛云存储', 'edit_theme_options', 'wp_qiniu_storage', 'wp_qiniu_storage_file_manage');
-    add_action('load-'.$wp_qiniu_page, 'wp_qiniu_storage_add_help_page');
-    add_action('load-'.$wp_qiniu_page_storage, 'wp_qiniu_storage_add_help_page_storage');
+	$wp_qiniu_page = add_options_page('WordPress连接七牛云存储','WP-QINIU','edit_theme_options',WP_QINIU_PLUGIN_NAME,'wp_qiniu_pannel');
+	$wp_qiniu_page_storage = add_submenu_page('upload.php', 'WordPress连接七牛云存储', '七牛云存储', 'edit_theme_options', 'wp_qiniu_storage', 'wp_qiniu_storage_file_manage');
+	add_action('load-'.$wp_qiniu_page, 'wp_qiniu_storage_add_help_page');
+	add_action('load-'.$wp_qiniu_page_storage, 'wp_qiniu_storage_add_help_page_storage');
+
+	/*add_menu_page('七牛云存储', 'WP-QINIU', 'manage_options', 'wp-qiniu/wp-qiniu.php', null);
+	add_submenu_page('wp-qiniu/wp-qiniu.php', "七牛设置", "设置", 'manage_options', 'wp-qiniu/wp-qiniu.php','wp_qiniu_pannel');
+	add_submenu_page('wp-qiniu/wp-qiniu.php', "文件管理", "文件管理", 'publish_pages', 'wp-qiniu/wp-qiniu-file-manage.php', 'wp_qiniu_storage_file_manage');*/
+
+
 }
 
 // 插件启用时执行表的创建
@@ -134,6 +142,8 @@ function wp_qiniu_deactivation(){
 	delete_option('wp_qiniu_watermark_style');
 	delete_option('wp_qiniu_style_split_char');
 	delete_option('wp_qiniu_image_protect');
+    delete_option('wp_qiniu_only_logouser');
+    delete_option('wp_qiniu_use_https');
 
 	delete_option('wp_qiniu_backup_run_rate');
 	delete_option('wp_qiniu_backup_run_time');
@@ -188,10 +198,16 @@ function wp_qiniu_action(){
 		// 图片样式分隔符
 		$style_splitchar = sanitize_text_field( $_POST['wp_qiniu_style_split_char'] );
 		update_option( 'wp_qiniu_style_split_char', $style_splitchar );
+        // 已开启https
+        $use_https = isset($_POST['wp_qiniu_use_https']) ? sanitize_text_field( $_POST['wp_qiniu_use_https'] ) : '';
+        update_option( 'wp_qiniu_use_https', $use_https );
 		// 已开启原图保护
 		$image_protect = isset($_POST['wp_qiniu_image_protect']) ? sanitize_text_field( $_POST['wp_qiniu_image_protect'] ) : '';
 		update_option( 'wp_qiniu_image_protect', $image_protect );
-
+		// 只有登录用户才可查看资源文件（包括图片、音视频和附件）
+		$only_logouser = isset($_POST['wp_qiniu_only_logouser']) ? sanitize_text_field( $_POST['wp_qiniu_only_logouser'] ) : '';
+		update_option( 'wp_qiniu_only_logouser', $only_logouser );
+        
 		$feed_actived = isset($_POST['wp_qiniu_feed_actived']) ? sanitize_text_field( $_POST['wp_qiniu_feed_actived']) : get_option('wp_qiniu_feed_actived');
 		update_option( 'wp_qiniu_feed_actived', $feed_actived );
         
@@ -369,8 +385,10 @@ function wp_qiniu_pannel(){
 					<p>备份存储空间名：<input type="text" name="wp_qiniu_backup_bucket" title="" style="width:100px;" value="<?php echo get_option('wp_qiniu_backup_bucket'); ?>" />(用于存储网站及数据库等备份文件，一般是私有存储空间。)</p>
 					<p>缩略图片样式名：<input type="text" name="wp_qiniu_thumbnail_style" title="" style="width:100px;" value="<?php echo get_option('wp_qiniu_thumbnail_style'); ?>" /></p>
 					<p>水印图片样式名：<input type="text" name="wp_qiniu_watermark_style" title="" style="width:100px;" value="<?php echo get_option('wp_qiniu_watermark_style'); ?>" /></p>
-					<p>图片样式分隔符：<input type="text" name="wp_qiniu_style_split_char" title="" style="width:100px;" value="<?php if(get_option('wp_qiniu_style_split_char')){ echo get_option('wp_qiniu_style_split_char');}else{ echo '/';} ?>" /></p>
+					<p>图片样式分隔符：<input type="text" name="wp_qiniu_style_split_char" title="" style="width:100px;" value="<?php if(get_option('wp_qiniu_style_split_char')){ echo get_option('wp_qiniu_style_split_char');}else{ echo '-';} ?>" /></p>
+					<p>存储空间已开启 HTTPS：<input type="checkbox" name="wp_qiniu_use_https" value="1" title="" <?php checked('1', get_option('wp_qiniu_use_https')); ?>/></p>
 					<p>存储空间已开启原图保护：<input type="checkbox" name="wp_qiniu_image_protect" value="1" title="" <?php checked('1', get_option('wp_qiniu_image_protect')); ?>/></p>
+					<p>登录用户才可查看音视频或下载文件：<input type="checkbox" name="wp_qiniu_only_logouser" value="1" title="" <?php checked('1', get_option('wp_qiniu_only_logouser')); ?>/></p>
                     <?php if(!get_option('wp_qiniu_feed_actived')): ?>
                     <p>向作者发送您的邮箱和站点域名：<input type="checkbox" name="wp_qiniu_feed_actived" value="1" title="" <?php checked('1', get_option('wp_qiniu_feed_actived')); ?>/><br/>（邮箱地址及站点域名仅用于记录本插件激活用户数，更多用户的使用是作者继续维护、完善本插件的动力，我们将严格遵循用户隐私保护条款。）</p>
 					<?php endif; ?>

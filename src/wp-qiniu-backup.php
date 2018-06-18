@@ -9,7 +9,7 @@ function wp_qiniu_more_reccurences_for_backup($schedules){
 
 function wp_qiniu_more_reccurences_for_backup_array(){
 	return array(
-		'never' => array('interval' => false, 'display' => '永不备份'),
+		'never' => array('interval' => false, 'display' => '从不'),
 		'daily' => array('interval' => 3600*24, 'display' => '每天一次'),
 		'doubly' => array('interval' => 3600*24*2, 'display' => '两天一次'),
 		'weekly' => array('interval' => 3600*24*7, 'display' => '每周一次'),

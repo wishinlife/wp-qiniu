@@ -3,8 +3,8 @@ Contributors: wishinlife
 Donate link: http://www.syncy.cn/index.php/donate/
 Tags:wp-qiniu, backup, sync, qiniu, object cloud storage, 七牛云存储
 Requires at least: 4.5.0
-Tested up to: 4.7.3
-Stable tag: 1.3.0
+Tested up to: 4.9.6
+Stable tag: 1.6.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -56,6 +56,22 @@ WP-QINIU官方网站：http://www.syncy.cn
 4. screenshot-4.png
 
 == Changelog ==
+
+= 1.6.1 =
+* 1、七牛PHP SDK升级到7.2.6版。
+* 2、七牛JS SDK升级到1.0.24版，解决了使用非华东机房的空间报错问题（七牛官方说明在1.0.19版中已解决）。
+* 3、增加七牛云存储https支持，需在设置中勾选“存储空间已开启 HTTPS”并保存（图片文件只对修改后插入文章的才生效，使用短代码的保存后即时生效）。
+
+= 1.6.0 =
+* 1、修复了在WP4.8版本上同步或上传文件时报数据库更新或插入错误。
+* 2、更新七牛SDK只7.2.1版。
+
+= 1.5.0 =
+* 1、增加登录后才可查看视频和下载文件功能。
+
+= 1.4.0 =
+* 1、修复了在编辑文章时，选择多个文件插入，只插入最后一个文件的bug。
+* 2、修复了未设置水印照片样式，在编辑文章时插入照片，会在照片地址的后面多一个样式分隔符的bug。
 
 = 1.3.0 =
 * 1、修复了与某些主题样式冲突，导致文件管理的操作区域样式显示不正常的bug。

@@ -106,7 +106,7 @@ function wp_qiniu_storage_media_tab_box() {
         <a href="javascript:void(0)" title="返回顶部">
             <div id="back-to-top-btn" onclick="jQuery('html,body').animate({scrollTop:0},500)">回顶部</div>
         </a>
-        <input type="hidden" id="wp-qiniu-storage-domain" value="<?php echo esc_attr('http://'.WP_QINIU_STORAGE_DOMAIN.'/');?>">
+        <input type="hidden" id="wp-qiniu-storage-domain" value="<?php echo esc_attr((WP_QINIU_USE_HTTPS?'https://':'http://').WP_QINIU_STORAGE_DOMAIN.'/');?>">
         <input type="hidden" id="wp-qiniu-thumbnail-style" value="<?php echo esc_attr(WP_QINIU_THUMBNAIL_STYLE);?>">
         <input type="hidden" id="wp-qiniu-watermark-style" value="<?php echo esc_attr(WP_QINIU_WATERMARK_STYLE);?>">
         <input type="hidden" id="wp-qiniu-style-split-char" value="<?php echo esc_attr(WP_QINIU_STYLE_SPLIT_CHAR);?>">

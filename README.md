@@ -4,8 +4,8 @@ WP-QINIU （WordPress连接到七牛云存储）
 * Donate link: http://www.syncy.cn/index.php/donate/
 * Tags:wp-qiniu, backup, sync, qiniu, object cloud storage, 七牛云存储
 * Requires at least: 4.5.0
-* Tested up to: 4.7.3
-* Stable tag: 1.3.0
+* Tested up to: 4.9.6
+* Stable tag: 1.6.1
 * License: GPLv2 or later
 * License URI: http://www.gnu.org/licenses/gpl-2.0.html
 

@@ -22,36 +22,42 @@ jQuery(function($) {
             // uptoken_func: function(file){						// 在需要获取uptoken时，该方法会被调用
             //    // do something11.								// return uptoken;
             // },
-            uptoken_func: function (file) {//
-                var ajax = new XMLHttpRequest(),
-                    fname = encodeURI(file.name);
-                ajax.open('GET', ajaxUrl + "?action=wp_qiniu_get_uptoken&pid=" + file.pid + "&fname=" + fname + "&nonce=" + ajaxNonce, false);//
-                ajax.setRequestHeader("If-Modified-Since", "0");
-                ajax.send();
-                if (ajax.status === 200) {
-                    var res = JSON.parse(ajax.responseText);
-                    //console.log('custom uptoken_func:' + res.uptoken);
-                    if (res['status'] == 'success') {
-                        if (res['exist']) {
-                            var overwrite = confirm('已存在同名文件，覆盖原有文件？');
-                            if (overwrite) {
-                                file.overwrite = true;
-                            } else {
-                                file.canceled = true;
-                            }
-                        } else
-                            file.overwrite = false;
-						file.fname = res['fname'];
-                        return res['uptoken'];
-                    } else {
-                        alert(res['error']);
-                        //console.log(res['error']);
-                        return '';
+            uptoken_func: function (file) {
+                var token = '';
+                $.ajax({
+                    type: "GET",
+                    url: ajaxUrl,
+                    async : false,
+                    data: {
+                        action: 'wp_qiniu_get_uptoken',
+                        pid: file.pid,
+                        fname: file.name,
+                        nonce: ajaxNonce
+                    },
+                    error: function (e) {
+                        alert('获取文件上传token失败！');
+                    },
+                    success: function (res) {
+                        // var res = JSON.parse(response);
+                        //console.log('custom uptoken_func:' + res.uptoken);
+                        if (res.status === 'success') {
+                            if (res.exist) {
+                                var overwrite = confirm('已存在同名文件，覆盖原有文件？');
+                                if (overwrite) {
+                                    file.overwrite = true;
+                                } else {
+                                    file.canceled = true;
+                                }
+                            } else
+                                file.overwrite = false;
+                            file.fname = res.fname;
+                            token = res.uptoken;
+                        } else {
+                            alert(res.error);
+                        }
                     }
-                } else {
-                    //console.log('custom uptoken_func err');
-                    return '';
-                }
+                });
+                return token;
             },
             get_new_uptoken: true,								// 设置上传文件的时候是否每次都重新获取新的uptoken
             // unique_names: false,									// 默认 false，key为文件名。若开启该选项，SDK为自动生成上传成功后的key（文件名）。
@@ -148,7 +154,7 @@ jQuery(function($) {
                         });
                     }
                     var progress = new FileProgress(file, 'fsUploadProgress');
-                    progress.setComplete(up, info);
+                    progress.setComplete(up, info.response);
                 },
                 'Error': function (up, err, errTip) {
                     //上传出错时,处理相关的事情
@@ -469,9 +475,9 @@ jQuery(function($) {
                 fnode_html += '<img src="' + pluginUrl + 'img/' + ftype + '.png" />';
 
             fnode_html += '</div>';
-            fnode_html += '<div class="file-name">';
+            fnode_html += '<div class="file-name"><div class="file-text">';
             fnode_html += res.fname;
-            fnode_html += '</div>';
+            fnode_html += '</div></div>';
             fnode_html += '</div>';
 
             $('#files-on-qiniu').append(fnode_html);

@@ -39,20 +39,23 @@ jQuery(function($){
 					fkey = pkey + fname;
 				// 如果被选择的是图片
 				if(ftype == 'image'){
-					var img_src = root_url + encodeURI(fkey + $('#wp-qiniu-style-split-char').val() + $('#wp-qiniu-watermark-style').val());
-					nhtml = '<a href="'+img_src+'"><img src="'+img_src+'" alt="'+fname+'" /></a>';
+                    var watermark = '';
+                    if($('#wp-qiniu-watermark-style').val())
+                        watermark = $('#wp-qiniu-style-split-char').val() + $('#wp-qiniu-watermark-style').val();
+					var img_src = root_url + encodeURI(fkey + watermark);
+					nhtml += '<a href="'+img_src+'"><img src="'+img_src+'" alt="'+fname+'" /></a>';
 				}
 				// 如果被选择的是视频，使用视频播放器
 				else if(ftype == 'video'){
-					nhtml = '[qiniuvideo key="'+ fkey +'" width="600" height="400" type="'+fmime+'"]';
+					nhtml += '[qiniuvideo key="'+ fkey +'" width="600" height="400" type="'+fmime+'"]';
 				}
 				// 如果被选择的是音乐，使用音频播放器
 				else if(ftype == 'audio'){
-					nhtml = '[qiniuaudio key="'+ fkey +'" titles="'+fname+'" artists="" autostart="no" loop="no" type="'+fmime+'"]';
+					nhtml += '[qiniuaudio key="'+ fkey +'" titles="'+fname+'" artists="" autostart="no" loop="no" type="'+fmime+'"]';
 				}
 				// 如果是其他文件，就直接给媒体链接
 				else{
-					nhtml = '[qiniufile key="'+ fkey +'" name="'+fname+'" type="'+fmime+'"]';
+					nhtml += '[qiniufile key="'+ fkey +'" name="'+fname+'" type="'+fmime+'"]';
 				}
 			});
 			divSelFiles.removeClass('selected');
@@ -201,9 +204,9 @@ jQuery(function($){
 						fnode_html += '<img src="'+ pluginUrl + 'img/' + ftype + '.png" />';
 
 					fnode_html += '</div>';
-					fnode_html += '<div class="file-name">';
-					fnode_html += fname;
-					fnode_html += '</div>';
+					fnode_html += '<div class="file-name"><div class="file-text">';
+					fnode_html += fname; 
+					fnode_html += '</div></div>';
 					fnode_html += '</div>';
 
 					if(workPath != $this.attr('data-current-path'))
@@ -350,9 +353,9 @@ jQuery(function($){
 				fnode_html += '<div class="file-thumbnail">';
 				fnode_html += '<img src="'+ pluginUrl + 'img/' + ftype + '.png" />';
 				fnode_html += '</div>';
-				fnode_html += '<div class="file-name">';
+				fnode_html += '<div class="file-name"><div class="file-text">';
 				fnode_html += fname;
-				fnode_html += '</div>';
+				fnode_html += '</div></div>';
 				fnode_html += '</div>';
 
 				if(workPath != $('#load-more').attr('data-current-path'))
@@ -522,7 +525,7 @@ jQuery(function($){
 					return;
 				}
 				divRename.attr('data-file-name',data['fname']);
-				divRename.find('div.file-name').text(data['fname']);
+				divRename.find('div.file-text').text(data['fname']);
 			},
 			error: function (XMLHttpRequest, textStatus, errorThrown) {
 				if(XMLHttpRequest.responseText) {

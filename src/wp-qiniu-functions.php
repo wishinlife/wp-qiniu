@@ -32,7 +32,7 @@ if (!defined('WP_QINIU_FUNCTIONS_LOAD')) {
 			return '';
 
 		//$http_type = ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https')) ? 'https://' : 'http://';
-		$retUrl = 'http://' . WP_QINIU_STORAGE_DOMAIN . '/' . $key;
+		$retUrl = (WP_QINIU_USE_HTTPS?'https://':'http://') . WP_QINIU_STORAGE_DOMAIN . '/' . $key;
 		if (WP_QINIU_IMAGE_PROTECT) {
 			global $auth;
 			//baseUrl构造成私有空间的域名/key的形式，开启原图保护的原文件下载与私有空间相同
@@ -197,7 +197,7 @@ if (!defined('WP_QINIU_FUNCTIONS_LOAD')) {
 			if($err !== null && $err->code() != 612)
 				return array('status' => 'false', 'error' => '七牛云存储文件重命名失败：'.$err->message());
 			else {
-				$ok = $wpdb->update( $table_name, array( 'fname' => $newname ), array( 'id' => $id ), array( '%s' ), array( '%u' ) );
+				$ok = $wpdb->update( $table_name, array( 'fname' => $newname ), array( 'id' => $id ), array( '%s' ), array( '%d' ) );
 				if ( ! $ok ) {
 					$err = $wpdb->last_error;
 					return array( 'status' => 'false', 'error' => $err );
@@ -261,7 +261,7 @@ if (!defined('WP_QINIU_FUNCTIONS_LOAD')) {
 			if(!$ok)
 				return array( 'status' => 'false', 'error' => '七牛云存储部分文件未能完成重命名操作，请重做此操作，否则将造成网站记录与存储文件名不一致的情况。' );
 			// 更新数据库记录
-			$ok = $wpdb->update( $table_name, array( 'fname' => $newname ), array( 'id' => $id ), array( '%s' ), array( '%u' ) );
+			$ok = $wpdb->update( $table_name, array( 'fname' => $newname ), array( 'id' => $id ), array( '%s' ), array( '%d' ) );
 			if ( ! $ok ) {
 				$err = $wpdb->last_error;
 				return array(
@@ -283,55 +283,74 @@ if (!defined('WP_QINIU_FUNCTIONS_LOAD')) {
 		$marker = null;
 		$ctime = date('Y-m-d H:i:s',time());
 		do {
-			list( $ret, $marker, $err ) = $bucketMgr->listFiles( WP_QINIU_STORAGE_BUCKET, $fpath, $marker, 1000, '/' );
+			@list( $ret, $marker, $err ) = $bucketMgr->listFiles( WP_QINIU_STORAGE_BUCKET, $fpath, $marker, 1000, '/' );
 			if ( $err !== null ) {
 				return array( 'status' => 'false', 'error' => $err->message() );
 			}
-			foreach ($ret['commonPrefixes'] as $dir){   //  同步文件夹信息
-				$fname = explode('/', rtrim($dir,'/'));
-				$fname = $fname[count($fname) - 1];
-				$ok = $wpdb->update( $table_name, array( 'flag' => 1 ), array( 'pid' => $pid, 'fname' => $fname, 'isdir' => 1 ), array( '%d' ), array('%u', '%s', '%d' ) );
-				if($ok === false){
-					$err = $wpdb->last_error;
-					return array('status' => 'false', 'error'  => '同步失败！' . $err);
-				}elseif($ok === 0) {
-					$ok = $wpdb->insert( $table_name,
-						array( 'pid' => $pid, 'isdir' => 1, 'fname' => $fname, 'fsize' => 0, 'ctime' => $ctime, 'width' => 0, 'height' => 0, 'mimeType' => '', 'flag' => 1 ),
-						array( '%u', '%d', '%s', '%d', '%s', '%d', '%d', '%s', '%d' ) );
-					if ( ! $ok ) {
+			if(isset($ret['commonPrefixes']) && is_array($ret['commonPrefixes'])) {
+				foreach ( $ret['commonPrefixes'] as $dir ) {   //  同步文件夹信息
+					$fname = explode( '/', rtrim( $dir, '/' ) );
+					$fname = $fname[ count( $fname ) - 1 ];
+					$ok    = $wpdb->update( $table_name, array( 'flag' => 1 ), array( 'pid' => $pid, 'fname' => $fname, 'isdir' => 1 ), array( '%d' ), array( '%d', '%s', '%d' ) );
+					if ( $ok === false ) {
 						$err = $wpdb->last_error;
+
 						return array( 'status' => 'false', 'error' => '同步失败！' . $err );
+					} elseif ( $ok === 0 ) {
+						$ok = $wpdb->insert( $table_name,
+							array( 'pid' => $pid, 'isdir' => 1, 'fname' => $fname, 'fsize' => 0, 'ctime' => $ctime, 'width' => 0, 'height' => 0, 'mimeType' => '', 'flag' => 1 ),
+							array( '%d', '%d', '%s', '%d', '%s', '%d', '%d', '%s', '%d' ) );
+						if ( ! $ok ) {
+							$err = $wpdb->last_error;
+
+							return array( 'status' => 'false', 'error' => '同步失败！' . $err );
+						} else {
+							$id = $wpdb->insert_id;
+						}
 					} else {
-						$id = $wpdb->insert_id;
+						$id = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $table_name WHERE pid=%d AND fname=%s and isdir=1", $pid, $fname ) );
+						if ( $id === false ) {
+							$err = $wpdb->last_error;
+
+							return array( 'status' => 'false', 'error' => $err );
+						}
 					}
-				} else {
-					$id = $wpdb->get_var($wpdb->prepare("SELECT id FROM $table_name WHERE pid=%d AND fname=%s and isdir=1",$pid, $fname));
-					if($id === false){
-						$err = $wpdb->last_error;
-						return array('status' => 'false', 'error' => $err);
+					$result = wp_qiniu_file_sync_by_pid( $id );
+					if ( $result['status'] !== 'success' ) {
+						return $result;
 					}
 				}
-				$result = wp_qiniu_file_sync_by_pid($id);
-				if($result['status'] !== 'success')
-					return $result;
 			}
-			foreach ($ret['items'] as $file){   //  同步文件信息
-				$fname = explode('/', $file['key']);
-				$fname = $fname[count($fname) - 1];
-				$ok = $wpdb->update( $table_name, array( 'flag' => 1 ), array( 'pid' => $pid, 'fname' => $fname, 'isdir' => 0 ), array( '%d' ), array('%u', '%s', '%d' ) );
-				if($ok === false){
-					$err = $wpdb->last_error;
-					return array('status' => 'false', 'error'  => '同步失败！' . $err);
-				}elseif($ok === 0) {
-					$ctime = date('Y-m-d H:i:s', $file['putTime']/10000000);
-					$ok = $wpdb->insert( $table_name,
-						array( 'pid' => $pid, 'isdir' => 0, 'fname' => $fname, 'fsize' => $file['fsize'], 'ctime' => $ctime, 'width' => -1, 'height' => -1, 'mimeType' => $file['mimeType'], 'flag' => 1 ),
-						array( '%u', '%d', '%s', '%d', '%s', '%d', '%d', '%s', '%d' ) );
-					if ( ! $ok ) {
+			if(isset($ret['items']) && is_array($ret['items'])) {
+				foreach ( $ret['items'] as $file ) {   //  同步文件信息
+					$fname = explode( '/', $file['key'] );
+					$fname = $fname[ count( $fname ) - 1 ];
+					$ok    = $wpdb->update( $table_name, array( 'flag' => 1 ), array( 'pid' => $pid, 'fname' => $fname, 'isdir' => 0 ), array( '%d' ), array( '%d', '%s', '%d' ) );
+					if ( $ok === false ) {
 						$err = $wpdb->last_error;
+
 						return array( 'status' => 'false', 'error' => '同步失败！' . $err );
-					} else {
-						$id = $wpdb->insert_id;
+					} elseif ( $ok === 0 ) {
+						$ctime = date( 'Y-m-d H:i:s', $file['putTime'] / 10000000 );
+						$ok    = $wpdb->insert( $table_name,
+							array( 'pid'      => $pid,
+							       'isdir'    => 0,
+							       'fname'    => $fname,
+							       'fsize'    => $file['fsize'],
+							       'ctime'    => $ctime,
+							       'width'    => - 1,
+							       'height'   => - 1,
+							       'mimeType' => $file['mimeType'],
+							       'flag'     => 1
+							),
+							array( '%d', '%d', '%s', '%d', '%s', '%d', '%d', '%s', '%d' ) );
+						if ( ! $ok ) {
+							$err = $wpdb->last_error;
+
+							return array( 'status' => 'false', 'error' => '同步失败！' . $err );
+						} else {
+							$id = $wpdb->insert_id;
+						}
 					}
 				}
 			}
@@ -343,7 +362,7 @@ if (!defined('WP_QINIU_FUNCTIONS_LOAD')) {
 		foreach($dels as $childFile){
 			$ok &= wp_qiniu_delete_file($table_name, $childFile['id'], $fpath.'/'.$childFile['fname'], $childFile['isdir']);
 		}
-		$wpdb->update( $table_name, array( 'flag' => 0 ), array('flag' => 1, 'pid' => $pid ), array( '%d' ), array('%d', '%u') );
+		$wpdb->update( $table_name, array( 'flag' => 0 ), array('flag' => 1, 'pid' => $pid ), array( '%d' ), array('%d', '%d') );
 		if ($ok)
 			return array( 'status' => 'success' );
 		else
