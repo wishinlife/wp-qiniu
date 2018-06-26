@@ -2,6 +2,7 @@
 require_once( dirname( __FILE__ ) . '/lib/autoload.php' );
 use Qiniu\Auth;		// 引入鉴权类
 use Qiniu\Storage\BucketManager;
+use Qiniu\Config;
 
 if (!defined('WP_QINIU_FUNCTIONS_LOAD')) {
 	define('WP_QINIU_FUNCTIONS_LOAD', 'WP_QINIU_LOADED');
@@ -40,6 +41,15 @@ if (!defined('WP_QINIU_FUNCTIONS_LOAD')) {
 		} 
 		return esc_url($retUrl);
 	}
+
+	function wp_qiniu_get_upload_url() {
+	    $config = new Config();
+//	    $config->useCdnDomains = true;
+	    if(WP_QINIU_USE_HTTPS)
+	        $config->useHTTPS = true;
+
+	    return $config->getUpHost(WP_QINIU_ACCESS_KEY, WP_QINIU_STORAGE_BUCKET);
+    }
 
 	function wp_qiniu_upload($fileContent, $key)
 	{

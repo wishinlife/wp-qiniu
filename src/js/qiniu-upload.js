@@ -10,59 +10,30 @@ jQuery(function($) {
 			ajaxNonce = $('#wp_qiniu_ajax_nonce').val(),
             thumbnailStyle = (thumbnailname) ? splitchar + thumbnailname : '?imageView2/1/w/100/h/100',
             watermarkStyle = (watermarkname) ? splitchar + watermarkname : '';
+        var chunk_size = 4 * 1024 * 1024;
+        var uploadUrl = $('#wp-qiniu-upload-url').val();
+        var indexCount = 0;
+        var resume = false;
+        var blockSize;
+        var token = '';
+        var config = {
+            useCdnDomain: true,
+            disableStatisticsReport: false,
+            retryCount: 6
+            // region: qiniu.region.z2
+        };
+        var putExtra = {
+            fname: "",
+            params: {},
+            mimeType: null
+        };
             
-        var uploader = Qiniu.uploader({
+        var uploader = new plupload.Uploader({
+            url: uploadUrl,
             runtimes: 'html5,flash,html4',						// 上传模式,依次退化
             browse_button: 'upload-pickfiles',					// 上传选择的点选按钮，**必需**
-            // 在初始化时，uptoken，uptoken_url，uptoken_func三个参数中必须有一个被设置
-            // 如果提供了多个，其优先级为uptoken > uptoken_url > uptoken_func
-            // 其中uptoken是直接提供上传凭证，uptoken_url是提供了获取上传凭证的地址，如果需要定制获取uptoken的过程则可以设置uptoken_func
-            //uptoken_url: $('#wp-admin-ajax-url').val()+"?action=wp_qiniu_get_uptoken",	// Ajax请求upToken的Url，**强烈建议设置**（服务端提供）
-            // uptoken : '<Your upload token>',						// 若未指定uptoken_url,则必须指定 uptoken ,uptoken由其他程序生成
-            // uptoken_func: function(file){						// 在需要获取uptoken时，该方法会被调用
-            //    // do something11.								// return uptoken;
-            // },
-            uptoken_func: function (file) {
-                var token = '';
-                $.ajax({
-                    type: "GET",
-                    url: ajaxUrl,
-                    async : false,
-                    data: {
-                        action: 'wp_qiniu_get_uptoken',
-                        pid: file.pid,
-                        fname: file.name,
-                        nonce: ajaxNonce
-                    },
-                    error: function (e) {
-                        alert('获取文件上传token失败！');
-                    },
-                    success: function (res) {
-                        // var res = JSON.parse(response);
-                        //console.log('custom uptoken_func:' + res.uptoken);
-                        if (res.status === 'success') {
-                            if (res.exist) {
-                                var overwrite = confirm('已存在同名文件，覆盖原有文件？');
-                                if (overwrite) {
-                                    file.overwrite = true;
-                                } else {
-                                    file.canceled = true;
-                                }
-                            } else
-                                file.overwrite = false;
-                            file.fname = res.fname;
-                            token = res.uptoken;
-                        } else {
-                            alert(res.error);
-                        }
-                    }
-                });
-                return token;
-            },
-            get_new_uptoken: true,								// 设置上传文件的时候是否每次都重新获取新的uptoken
-            // unique_names: false,									// 默认 false，key为文件名。若开启该选项，SDK为自动生成上传成功后的key（文件名）。
-            //save_key: false,										// 默认 false。若在服务端生成uptoken的上传策略中指定了 `sava_key`，则开启，SDK会忽略对key的处理
-            domain: storageDomain,	                            //bucket 域名，下载资源时用到，**必需**
+
+            // domain: storageDomain,	                            //bucket 域名，下载资源时用到，**必需**
             // downtoken_url: $('#wp-admin-ajax-url').val()+"?action=wp_qiniu_get_download_url",							// Ajax请求downToken的Url，私有空间时使用，JS-SDK将向该地址POST文件的key和domain，服务端返回的JSON必须包含url字段，url值为该文件的下载地址
             container: 'upload-container',								// 上传区域DOM ID，默认是browser_button的父元素，
             max_file_size: '512mb',								// 最大文件体积限制
@@ -70,19 +41,12 @@ jQuery(function($) {
             max_retries: 3,										// 上传失败最大重试次数
             dragdrop: true,										// 开启可拖曳上传
             drop_element: 'upload-pickfiles',							// 拖曳上传区域元素的ID，拖曳文件或文件夹后可触发上传
-            chunk_size: '4mb',									// 分块上传时，每片的体积
-            auto_start: true,										// 选择文件后自动上传，若关闭需要自己绑定事件触发上传
+            chunk_size: chunk_size,									// 分块上传时，每片的体积
             multi_selection: true,								// 设置一次只能选择一个文件，还是可以多选
-            //log_level: 5,
-            /*x_vars: {
-                //    查看自定义变量，不能为bool型值，否则在传输大于4M文件时会失败，4M以下文件不受影响
-                'pid': function (up, file) {
-                    return file.pid;
-                },
-                'overwrite': function (up, file) {
-                    return String(file.overwrite);
-                }
-            },*/
+            multipart_params: {
+                // token从服务端获取，没有token无法上传
+                token: token
+            },
             //filters : {		// 设置文件过滤选项
             //	max_file_size : '100mb',
             //	prevent_duplicates: true,    // Specify what files to browse for
@@ -93,7 +57,11 @@ jQuery(function($) {
             //	]
             //},
             init: {
-                'FilesAdded': function (up, files) {		// 当文件添加到上传队列后触发
+                PostInit: function() {
+                    console.log("upload init");
+                },
+                FilesAdded: function (up, files) {		// 当文件添加到上传队列后触发
+                    resume = false;
                     $('#upload-detail').show();//$('#fsUploadProgress').show();
                     $('#upload-success').hide();
                     var divLoadMore = $('#load-more'),
@@ -110,70 +78,368 @@ jQuery(function($) {
                         progress.bindUploadCancel(up);
                     });
                 },
-                'BeforeUpload': function (up, file) {
-                    // 每个文件上传前,处理相关的事情
-                    var progress = new FileProgress(file, 'fsUploadProgress');
-                    if (file.canceled) {
-                        progress.fileProgressWrapper.find('td:eq(2) .progressCancel').click();
-                        return false;
-                    } else {
-                        var chunk_size = plupload.parseSize(this.getOption('chunk_size'));
-                        if (up.runtime === 'html5' && chunk_size) {
-                            progress.setChunkProgess(chunk_size);
-                        }
-                    }
+                FileUploaded: function(up, file, info) {
+                    console.log(info);
                 },
-                'UploadProgress': function (up, file) {
-                    // 每个文件上传时,处理相关的事情
-                    var progress = new FileProgress(file, 'fsUploadProgress');
-                    var chunk_size = plupload.parseSize(this.getOption('chunk_size'));
-                    progress.setProgress(file.percent + "%", file.speed, chunk_size);
+                UploadComplete: function(up, files) {
+                    // Called when all files are either uploaded or failed
+                    console.log("[完成]");
                 },
-                'UploadComplete': function () {
-                    //队列文件处理完毕后,处理相关的事情
-                    $('#upload-success').show();
-                    // 添加已上传文件的显示，并返回至文件列表窗口
-                    //$('#show-upload-area').click();
-                },
-                'FileUploaded': function (up, file, info) {
-                    // 每个文件上传成功后,处理相关的事情
-                    // 其中 info 是文件上传成功后，服务端返回的json，形式如
-                    // {
-                    //    "hash": "Fh8xVqod2MQ1mocfI4S4KpRL6D98",
-                    //    "key": "gogopher.jpg"
-                    //  }
-                    // 参考http://developer.qiniu.com/docs/v6/api/overview/up/response/simple-response.html
-                    //查看简单反馈
-                    // var domain = up.getOption('domain');
-                    // var res = parseJSON(info);
-                    // var sourceLink = domain + res.key; 获取上传成功后的文件的Url
-                    if (file.overwrite) {
-                        $('div.file-on-qiniu[data-file-name="' + file.name + '"]').each(function () {
-                            if ($(this).attr('data-file-type') != 'dir')
-                                $(this).remove();
-                        });
-                    }
-                    var progress = new FileProgress(file, 'fsUploadProgress');
-                    progress.setComplete(up, info.response);
-                },
-                'Error': function (up, err, errTip) {
-                    //上传出错时,处理相关的事情
-                    $('#upload-detail').show();//$('#fsUploadProgress').show();
-                    var progress = new FileProgress(err.file, 'fsUploadProgress');
-                    progress.setError();
-                    progress.setStatus(errTip);
-                },
-                'Key': function (up, file) {
-                    // 若想在前端对每个文件的key进行个性化处理，可以配置该函数
-                    // 该配置必须要在 unique_names: false , save_key: false 时才生效
-                    //var key = file.path + file.name;
-                    // do something with key here
-                    return file.path + file.fname;
+                Error: function(up, err) {
+                    console.log(err.response);
                 }
             }
         });
 // domain 为七牛空间（bucket)对应的域名，选择某个空间后，可通过"空间设置->基本设置->域名设置"查看获取
 // uploader 为一个plupload对象，继承了所有plupload的方法，参考http://plupload.com/docs
+        uploader.init();
+        uploader.bind("FilesAdded", function (uploader, files) {
+            setTimeout(function () {
+                uploader.start()
+            }, 0);
+            uploader.refresh();
+        });
+        uploader.bind('Error',function(uploader, err){
+            console.log('file upload error.');
+            //上传出错时,处理相关的事情
+            $('#upload-detail').show();//$('#fsUploadProgress').show();
+            var progress = new FileProgress(err.file, 'fsUploadProgress');
+            progress.setError();
+            var errTip = getErrTip(err.status);
+            progress.setStatus(errTip); // + err.response
+            console.log(err.response);
+        });
+        uploader.bind("BeforeUpload", function(uploader, file) {
+            // 每个文件上传前,处理相关的事情
+            var progress = new FileProgress(file, 'fsUploadProgress');
+            if (file.canceled) {
+                progress.fileProgressWrapper.find('td:eq(2) .progressCancel').click();
+                return false;
+            } else {
+                if (uploader.runtime === 'html5' && chunk_size) {
+                    progress.setChunkProgess(chunk_size);
+                }
+            }
+            file.startTime = new Date();
+            file.speed = file.speed || 0;
+            var key = file.path + file.name;
+            file.key = key;
+            putExtra.params["x:name"] = key.split(".")[0];
+            var id = file.id;
+            token = getUpToken(uploader, file);
+            // chunk_size = uploader.getOption("chunk_size");
+
+            var directUpload = function() {
+                var multipart_params_obj = {};
+                multipart_params_obj.token = token;
+                // filterParams 返回符合自定义变量格式的数组，每个值为也为一个数组，包含变量名及变量值
+                var customVarList = qiniu.filterParams(putExtra.params);
+                for (var i = 0; i < customVarList.length; i++) {
+                    var k = customVarList[i];
+                    multipart_params_obj[k[0]] = k[1];
+                }
+                multipart_params_obj.key = key;
+                uploader.setOption({
+                    url: uploadUrl,
+                    multipart: true,
+                    multipart_params: multipart_params_obj
+                });
+            };
+
+            var resumeUpload = function() {
+                blockSize = chunk_size;
+                initFileInfo(file);
+                if(blockSize === 0){
+                    mkFileRequest(file)
+                    uploader.stop()
+                    return
+                }
+                resume = true;
+                var multipart_params_obj = {};
+                // 计算已上传的chunk数量
+                var index = Math.floor(file.loaded / chunk_size);
+                // var dom_total = $(board[id])
+                //     .find("#totalBar")
+                //     .children("#totalBarColor");
+                // if (board[id].start != "reusme") {
+                //     $(board[id])
+                //         .find(".fragment-group")
+                //         .addClass("hide");
+                // }
+                // dom_total.css(
+                //     "width",
+                //     file.percent + "%"
+                // );
+                // 初始化已上传的chunk进度
+                // for (var i = 0; i < index; i++) {
+                //     var dom_finished = $(board[id])
+                //         .find(".fragment-group li")
+                //         .eq(i)
+                //         .find("#childBarColor");
+                //     dom_finished.css("width", "100%");
+                // }
+                var headers = qiniu.getHeadersForChunkUpload(token)
+                uploader.setOption({
+                    url: uploadUrl + "/mkblk/" + blockSize,
+                    multipart: false,
+                    required_features: "chunks",
+                    headers: {
+                        Authorization: "UpToken " + token
+                    },
+                    multipart_params: multipart_params_obj
+                });
+            };
+            // 判断是否采取分片上传
+            if (
+                (uploader.runtime === "html5" || uploader.runtime === "flash") &&
+                chunk_size
+            ) {
+                if (file.size < chunk_size) {
+                    directUpload();
+                } else {
+                    resumeUpload();
+                }
+            } else {
+                console.log(
+                    "directUpload because file.size < chunk_size || is_android_weixin_or_qq()"
+                );
+                directUpload();
+            }
+        });
+        uploader.bind("ChunkUploaded", function(up, file, info) {
+            var res = JSON.parse(info.response);
+            var leftSize = info.total - info.offset;
+            var chunk_size = uploader.getOption && uploader.getOption("chunk_size");
+            if (leftSize < chunk_size) {
+                up.setOption({
+                    url: uploadUrl + "/mkblk/" + leftSize
+                });
+            }
+            up.setOption({
+                headers: {
+                    Authorization: "UpToken " + token
+                }
+            });
+            // 更新本地存储状态
+            var localFileInfo = JSON.parse(localStorage.getItem(file.name))|| [];
+            localFileInfo[indexCount] = {
+                ctx: res.ctx,
+                time: new Date().getTime(),
+                offset: info.offset,
+                percent: file.percent
+            };
+            indexCount++;
+            localStorage.setItem(file.name, JSON.stringify(localFileInfo));
+        });
+        // 每个事件监听函数都会传入一些很有用的参数，
+        // 我们可以利用这些参数提供的信息来做比如更新UI，提示上传进度等操作
+        uploader.bind("UploadProgress", function(uploader, file) {
+            var currentTime = (new Date).getTime();
+            var i = currentTime - file.startTime, n = file.loaded || 0;
+            resume && (n = file.loaded - file.resumeFilesize);
+            file.speed = (n / i * 1e3).toFixed(0) || 0;
+
+            // 每个文件上传时,处理相关的事情
+            var progress = new FileProgress(file, 'fsUploadProgress');
+            progress.setProgress(file.percent + "%", file.speed, chunk_size);
+        });
+        uploader.bind("FileUploaded", function(uploader, file, info) {
+            if (resume) {
+                mkFileRequest(file)
+            } else {
+                var res = $.parseJSON(info.response);
+                uploadFinish(res, file);
+            }
+
+        });
+        uploader.bind("UploadComplete", function () {
+            //队列文件处理完毕后,处理相关的事情
+            $('#upload-success').show();
+            // 添加已上传文件的显示，并返回至文件列表窗口
+            //$('#show-upload-area').click();
+        });
+
+        function getUpToken(uploader, file) {
+            var token = '';
+            $.ajax({
+                type: "GET",
+                url: ajaxUrl,
+                async : false,
+                data: {
+                    action: 'wp_qiniu_get_uptoken',
+                    pid: file.pid,
+                    fname: file.name,
+                    nonce: ajaxNonce
+                },
+                error: function (e) {
+                    alert('获取文件上传token失败！');
+                },
+                success: function (res) {
+                    // var res = JSON.parse(response);
+                    //console.log('custom uptoken_func:' + res.uptoken);
+                    if (res.status === 'success') {
+                        if (res.exist) {
+                            var overwrite = confirm('已存在同名文件，覆盖原有文件？');
+                            if (overwrite) {
+                                file.overwrite = true;
+                            } else {
+                                file.canceled = true;
+                            }
+                        } else
+                            file.overwrite = false;
+                        file.fname = res.fname;
+                        token = res.uptoken;
+                    } else {
+                        alert(res.error);
+                    }
+                }
+            });
+            return token;
+        }
+        function uploadFinish(info, file) {
+            localStorage.removeItem(file.name)
+
+            // 每个文件上传成功后,处理相关的事情
+            // 其中 info 是文件上传成功后，服务端返回的json，形式如
+            // {
+            //    "hash": "Fh8xVqod2MQ1mocfI4S4KpRL6D98",
+            //    "key": "gogopher.jpg"
+            //  }
+            // 参考http://developer.qiniu.com/docs/v6/api/overview/up/response/simple-response.html
+            //查看简单反馈
+            // var domain = up.getOption('domain');
+            // var res = parseJSON(info);
+            // var sourceLink = domain + res.key; 获取上传成功后的文件的Url
+            if (file.overwrite) {
+                $('div.file-on-qiniu[data-file-name="' + file.name + '"]').each(function () {
+                    if ($(this).attr('data-file-type') != 'dir')
+                        $(this).remove();
+                });
+            }
+            var progress = new FileProgress(file, 'fsUploadProgress');
+            progress.setComplete(info);
+        }
+        function initFileInfo(file) {
+            var localFileInfo = JSON.parse(localStorage.getItem(file.name))|| [];
+            indexCount = 0;
+            var length = localFileInfo.length;
+            if (length) {
+                var clearStatus = false;
+                for (var i = 0; i < localFileInfo.length; i++) {
+                    indexCount++;
+                    if (isExpired(localFileInfo[i].time)) {
+                        clearStatus = true;
+                        localStorage.removeItem(file.name);
+                        break;
+                    }
+                }
+                if(clearStatus){
+                    indexCount = 0;
+                    return;
+                }
+                file.loaded = localFileInfo[length - 1].offset;
+                var leftSize = file.size - file.loaded;
+                if(leftSize < chunk_size){
+                    blockSize = leftSize;
+                }
+                file.percent = localFileInfo[length - 1].percent;
+                file.resumeFilesize = file.loaded;
+                return;
+            }else{
+                indexCount = 0;
+                file.percent = 0;
+                file.resumeFilesize = 0;
+            }
+        }
+        function mkFileRequest(file){
+            // 调用sdk的url构建函数
+            var requestUrl = qiniu.createMkFileUrl(
+                uploadUrl,
+                file.size,
+                file.key,
+                putExtra
+            );
+            var ctx = [];
+            var id = file.id;
+            var stoInfo = localStorage.getItem(file.name);
+            if(stoInfo) {
+                var local = JSON.parse(stoInfo);
+                for (var i = 0; i < local.length; i++) {
+                    ctx.push(local[i].ctx);
+                }
+            }
+            // 设置上传的header信息
+            var headers = qiniu.getHeadersForMkFile(token);
+            $.ajax({url: requestUrl, type: "POST",  headers: headers, data: ctx.join(","), success: function(res){
+                    uploadFinish(res, file);
+                },error: function (e) {
+                    console.log('file upload error.');
+                    //上传出错时,处理相关的事情
+                    $('#upload-detail').show();//$('#fsUploadProgress').show();
+                    var progress = new FileProgress(file, 'fsUploadProgress');
+                    progress.setError();
+                    var errTip = getErrTip(e.status);
+                    progress.setStatus(errTip);// + e.response
+                    console.log(e.response);
+                }
+            })
+        }
+        function isExpired(time){
+            var expireAt = time + 3600 * 24* 1000;
+            return new Date().getTime() > expireAt;
+        }
+        function getErrTip(status) {
+            switch (status){
+                case 298:
+                    return '部分操作执行成功。';
+                case 400:
+                    return '请求报文格式错误。';
+                case 401:
+                    return '认证授权失败。';
+                case 403:
+                    return '权限不足，拒绝访问。';
+                case 404:
+                    return '资源不存在。';
+                case 405:
+                    return '请求方式错误。';
+                case 406:
+                    return '上传的数据 CRC32 校验错误。';
+                case 413:
+                    return '请求资源大小大于指定的最大值。';
+                case 419:
+                    return '用户账号被冻结。';
+                case 478:
+                    return '镜像回源失败。';
+                case 502:
+                    return '错误网关。';
+                case 503:
+                    return '服务端不可用。';
+                case 504:
+                    return '服务端操作超时。';
+                case 573:
+                    return '单个资源访问频率过高。';
+                case 579:
+                    return '上传成功但是回调失败。';
+                case 599:
+                    return '服务端操作失败。';
+                case 608:
+                    return '资源内容被修改。';
+                case 612:
+                    return '指定资源不存在或已被删除。';
+                case 614:
+                    return '目标资源已存在。';
+                case 630:
+                    return '已创建的空间数量达到上限，无法创建新空间。';
+                case 631:
+                    return '指定空间不存在。';
+                case 640:
+                    return '调用列举资源(list)接口时，指定非法的marker参数。';
+                case 701:
+                    return '在断点续上传过程中，后续上传接收地址不正确或ctx信息已过期。。';
+                default:
+                    return '未知错误（错误码：'+ status +'）。';
+            }
+        }
 
         $('#upload-pickfiles').on(
             'dragenter',
@@ -383,12 +649,11 @@ jQuery(function($) {
             this.appear();
         };
 
-        FileProgress.prototype.setComplete = function (up, info) {
+        FileProgress.prototype.setComplete = function (res) {
             var td = this.fileProgressWrapper.find('td:eq(2)'),
                 tdProgress = td.find('.progress');
 
-            var res = $.parseJSON(info);
-            var domain = up.getOption('domain');
+            var domain = storageDomain;
             var url, str;
             if (res.url) {
                 url = encodeURI(res.url);
@@ -432,13 +697,13 @@ jQuery(function($) {
             else
                 ftype = 'file';
 
-            if (ftype != 'image' && ftype != 'video') {
+            if (ftype !== 'image' && ftype !== 'video') {
                 showImg.attr('src', pluginUrl + 'img/' + ftype + '.png');
                 Wrapper.addClass('default');
                 imgWrapper.append(showImg);
                 Wrapper.append(imgWrapper);
             } else {
-                if(ftype == 'image') {
+                if(ftype === 'image') {
                     linkWrapper.append(showImg);
                     imgWrapper.append(linkWrapper);
                     Wrapper.append(imgWrapper);
@@ -453,7 +718,7 @@ jQuery(function($) {
                 }
                 var infoWrapper = $('<div class="infoWrapper col-md-6"></div>');
 
-                if (watermarkStyle && ftype == 'image') {
+                if (watermarkStyle && ftype === 'image') {
                     var waterLink = $('<a href="" target="_blank">查看水印图片</a>');
                     waterLink.attr('href', domain + encodeURI(res.key) + watermarkStyle).attr('title', '查看水印图片');
                     infoWrapper.append(waterLink);
@@ -469,7 +734,7 @@ jQuery(function($) {
 
             var fnode_html = '<div class="file-on-qiniu' + '" data-file-name="' + res.fname + '" data-file-type="' + ftype + '" data-file-id="' + res.id + '" data-file-mime="' + res.mimeType + '">';
             fnode_html += '<div class="file-thumbnail">';
-            if (ftype == 'image')
+            if (ftype === 'image')
                 fnode_html += '<img src="' + domain + encodeURI(res.key) + thumbnailStyle + '" />';
             else
                 fnode_html += '<img src="' + pluginUrl + 'img/' + ftype + '.png" />';

@@ -4,7 +4,7 @@ Donate link: http://www.syncy.cn/index.php/donate/
 Tags:wp-qiniu, backup, sync, qiniu, object cloud storage, 七牛云存储
 Requires at least: 4.5.0
 Tested up to: 4.9.6
-Stable tag: 1.6.1
+Stable tag: 2.0.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -56,6 +56,11 @@ WP-QINIU官方网站：http://www.syncy.cn
 4. screenshot-4.png
 
 == Changelog ==
+
+= 2.0.0 =
+* 1、七牛JS SDK升级到2.3.0版。
+* 2、可自动根据bucket查询上传服务器地址，可支持华东、华北、华南、北美、新加坡区域存储。
+* 3、开启https支持时，上传文件也同步采用https协议。
 
 = 1.6.1 =
 * 1、七牛PHP SDK升级到7.2.6版。

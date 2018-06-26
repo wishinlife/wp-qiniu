@@ -117,6 +117,7 @@ function wp_qiniu_storage_file_manage() {
 		<input type="hidden" id="wp-qiniu-watermark-style" value="<?php echo esc_attr(WP_QINIU_WATERMARK_STYLE);?>">
 		<input type="hidden" id="wp-qiniu-style-split-char" value="<?php echo esc_attr(WP_QINIU_STYLE_SPLIT_CHAR);?>">
 		<input type="hidden" id="wp-qiniu-plugin-url" value="<?php echo esc_attr(plugins_url('/',WP_QINIU_PLUGIN_NAME));?>">
+        <input type="hidden" id="wp-qiniu-upload-url" value="<?php echo esc_attr(wp_qiniu_get_upload_url());?>">
 		<input type="hidden" id="wp-admin-ajax-url" value="<?php echo esc_attr(admin_url('admin-ajax.php'));?>">
 		<input type="hidden" id="wp_qiniu_ajax_nonce" value="<?php echo wp_create_nonce('wp_qiniu_ajax_nonce'); ?>"/>
 	    <div id="log" style="margin-top: 20px;display: none;">
@@ -145,7 +146,7 @@ function wp_qiniu_admin_load_resources() {
 		wp_register_style('qiniu-upload.css', plugins_url('css/qiniu-upload.min.css', WP_QINIU_PLUGIN_NAME), array(), WP_QINIU_PLUGIN_VER);
 		wp_enqueue_style('qiniu-upload.css');
 
-        wp_register_script('qiniu.js', plugins_url('js/qiniu.min.js',WP_QINIU_PLUGIN_NAME), array('jquery', 'plupload'), '1.0.24');
+        wp_register_script('qiniu.js', plugins_url('js/qiniu.min.js',WP_QINIU_PLUGIN_NAME), array('jquery', 'plupload'), '2.3.0');
 		wp_enqueue_script('qiniu.js');
 		wp_register_script('file-manage.js', plugins_url('js/file-manage.min.js',WP_QINIU_PLUGIN_NAME), array('jquery', 'plupload','qiniu.js'), WP_QINIU_PLUGIN_VER);
 		wp_enqueue_script('file-manage.js');
