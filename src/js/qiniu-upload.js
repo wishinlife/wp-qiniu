@@ -94,8 +94,9 @@ jQuery(function($) {
 // uploader 为一个plupload对象，继承了所有plupload的方法，参考http://plupload.com/docs
         uploader.init();
         uploader.bind("FilesAdded", function (uploader, files) {
+            $('#uploader-ope').show();
             setTimeout(function () {
-                uploader.start()
+                startUpload(uploader);
             }, 0);
             uploader.refresh();
         });
@@ -255,10 +256,33 @@ jQuery(function($) {
         uploader.bind("UploadComplete", function () {
             //队列文件处理完毕后,处理相关的事情
             $('#upload-success').show();
+            $('#uploader-ope').hide();
             // 添加已上传文件的显示，并返回至文件列表窗口
             //$('#show-upload-area').click();
         });
 
+        function startUpload(uploader) {
+            uploader.start();
+            var btn = $('#uploader-ope');
+            btn.text('暂停上传');
+            btn.css('background-color','yellow');
+            btn.css('color', 'black');
+            btn.unbind('click');
+            btn.click(function () {
+                stopUpload(uploader);
+            });
+        }
+        function stopUpload(uploader) {
+            uploader.stop();
+            var btn = $('#uploader-ope');
+            btn.text('继续上传');
+            btn.css('background-color','#0085ba');
+            btn.css('color', 'white');
+            btn.unbind('click');
+            btn.click(function () {
+                startUpload(uploader);
+            });
+        }
         function getUpToken(uploader, file) {
             var token = '';
             $.ajax({
@@ -464,6 +488,17 @@ jQuery(function($) {
 
         $('body').on('click', 'table button.btn', function () {
             $(this).parents('tr').next().toggle();
+        });
+        // 清除已完成列表条目
+        $('#clear-upload-info').click(function () {
+            $('#upload-success').hide();
+            var tableDetail = $('#upload-file-detail');
+            tableDetail.find('tr.success').remove();
+            tableDetail.find('tr.warning').remove();
+            tableDetail.find('tr.danger').remove();
+        });
+        $('#uploader-ope').click(function () {
+            startUpload(uploader);
         });
 
         function FileProgress(file, targetID) {
@@ -783,9 +818,11 @@ jQuery(function($) {
                     self.fileProgressWrapper.find('.status').css('left', '0');
                     up.removeFile(self.file);
                     self.fileProgressWrapper.addClass('warning');
+                    if(up.files.length === 0) {
+                        $('#uploader-ope').hide();
+                    }
                 });
             }
-
         };
 
         FileProgress.prototype.appear = function () {

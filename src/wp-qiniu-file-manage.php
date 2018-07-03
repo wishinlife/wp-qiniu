@@ -61,6 +61,7 @@ function wp_qiniu_storage_file_manage() {
 				<button id="btn-rename" class="button" disabled="disabled">重命名</button>
 				<button id="btn-clear" class="button" disabled="disabled">取消选择</button>
 				<button id="btn-delete" class="button" disabled="disabled">删除</button>
+                <button id="btn-copy" class="button" style="display: none;">复制链接</button>
                 <button id="btn-sync" class="button" title="与七牛云存储同步当前目录及其子目录的文件信息">同步</button>
 				<span style="margin-left:30px;">
 					排序：<input type="radio" name="wp-qiniu-file-orderby" title="" value="ctime-desc" checked/>时间倒排
@@ -96,10 +97,13 @@ function wp_qiniu_storage_file_manage() {
 	                <table id="upload-file-detail" class="table table-striped table-hover text-left" style="margin-top: 50px;">
 						<thead>
 							<tr>
-								<th class="col-md-4">文件名</th>
-								<th class="col-md-2">文件大小</th>
-	                            <th class="col-md-4">详细信息</th>
-	                            <th class="col-md-2"><button class="button right" id="clear-upload-info">清除已完成文件列表</button></th>
+                                <th class="col-md-4">文件名</th>
+                                <th class="col-md-2">文件大小</th>
+                                <th class="col-md-2">详细信息</th>
+                                <th class="col-md-4">
+                                    <button class="button right" id="uploader-ope" style="display: none;margin-left: 15px;background-color: #0085ba;color:white;">开始上传</button>
+                                    <button class="button right" id="clear-upload-info">清除已完成文件列表</button>
+                                </th>
 							</tr>
 						</thead>
 						<tbody id="fsUploadProgress"></tbody>
@@ -146,9 +150,11 @@ function wp_qiniu_admin_load_resources() {
 		wp_register_style('qiniu-upload.css', plugins_url('css/qiniu-upload.min.css', WP_QINIU_PLUGIN_NAME), array(), WP_QINIU_PLUGIN_VER);
 		wp_enqueue_style('qiniu-upload.css');
 
+        wp_register_script('clipboard.js', plugins_url('js/clipboard.min.js',WP_QINIU_PLUGIN_NAME), array('jquery'), '2.0.0');
+        wp_enqueue_script('clipboard.js');
         wp_register_script('qiniu.js', plugins_url('js/qiniu.min.js',WP_QINIU_PLUGIN_NAME), array('jquery', 'plupload'), '2.3.0');
 		wp_enqueue_script('qiniu.js');
-		wp_register_script('file-manage.js', plugins_url('js/file-manage.min.js',WP_QINIU_PLUGIN_NAME), array('jquery', 'plupload','qiniu.js'), WP_QINIU_PLUGIN_VER);
+		wp_register_script('file-manage.js', plugins_url('js/file-manage.min.js',WP_QINIU_PLUGIN_NAME), array('jquery', 'plupload','qiniu.js', 'clipboard.js'), WP_QINIU_PLUGIN_VER);
 		wp_enqueue_script('file-manage.js');
 		wp_register_script('qiniu-upload.js', plugins_url('js/qiniu-upload.min.js',WP_QINIU_PLUGIN_NAME), array('jquery', 'plupload','qiniu.js'), WP_QINIU_PLUGIN_VER);
 		wp_enqueue_script('qiniu-upload.js');

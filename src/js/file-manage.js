@@ -196,7 +196,7 @@ jQuery(function($){
 						ftype = 'file';
 					}
 
-					var fnode_html = '<div class="file-on-qiniu'+'" data-file-name="'+fname+'" data-file-type="'+ftype+'" data-file-id="'+id+'" data-file-mime="'+fmime+'">';
+					var fnode_html = '<div class="file-on-qiniu'+'"'+(ftype!=='dir'?' title="双击复制连接到剪贴板"':'')+' data-file-name="'+fname+'" data-file-type="'+ftype+'" data-file-id="'+id+'" data-file-mime="'+fmime+'">';
 					fnode_html += '<div class="file-thumbnail">';
 					if(ftype == 'image')
 						fnode_html += '<img src="'+dirUrl +encodeURI(fname) + thumbnailStyle + '" />';
@@ -268,6 +268,30 @@ jQuery(function($){
 		divLoadMore.attr('data-loading','false');
 		divLoadMore.click();	// 开始加载文件
 	});
+	//双击文件，复制连接地址到剪贴板
+    $('div.file-on-qiniu[data-file-type!="dir"]').live('dblclick', function(e) {
+        var $this = $(this),
+            root_url = $('#wp-qiniu-storage-domain').val(),
+            ftype = $this.attr('data-file-type'),
+            fkey = $('#load-more').attr('data-current-path') + $this.attr('data-file-name'),
+			flink = '',
+			watermark = '';
+        // 如果被选择的是图片
+        if(ftype == 'image'){
+            if($('#wp-qiniu-watermark-style').val())
+                watermark = $('#wp-qiniu-style-split-char').val() + $('#wp-qiniu-watermark-style').val();
+        }
+        flink = root_url + encodeURI(fkey + watermark);
+        $('#btn-copy').attr('data-clipboard-text',flink);
+        new ClipboardJS('#btn-copy');
+        // new ClipboardJS('#btn-copy', {
+        //     text: function(trigger) {
+        //         return flink;
+        //     }
+        // });
+        $('#btn-copy').click();
+
+    });
 	// 点击toolbar中的连接
 	$('#wp-qiniu-path-navi').find('a.link-Active').live('click',function(e){
         $('#btn-clear').click();
@@ -457,13 +481,7 @@ jQuery(function($){
 			}
 		});
 	});
-	// 清除已完成列表条目
-	$('#clear-upload-info').click(function () {
-		var tableDetail = $('#upload-file-detail');
-		tableDetail.find('tr.success').remove();
-		tableDetail.find('tr.warning').remove();
-		tableDetail.find('tr.danger').remove();
-    });
+
 	// 重命名文件
 	$('#btn-rename').click(function(){
 		var divRename = $('div.file-on-qiniu.selected');

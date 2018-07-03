@@ -3,6 +3,7 @@ require_once( dirname( __FILE__ ) . '/lib/autoload.php' );
 use Qiniu\Auth;		// 引入鉴权类
 use Qiniu\Storage\BucketManager;
 use Qiniu\Config;
+use Qiniu\Zone;
 
 if (!defined('WP_QINIU_FUNCTIONS_LOAD')) {
 	define('WP_QINIU_FUNCTIONS_LOAD', 'WP_QINIU_LOADED');
@@ -44,9 +45,10 @@ if (!defined('WP_QINIU_FUNCTIONS_LOAD')) {
 
 	function wp_qiniu_get_upload_url() {
 	    $config = new Config();
-//	    $config->useCdnDomains = true;
-	    if(WP_QINIU_USE_HTTPS)
-	        $config->useHTTPS = true;
+	    $config->useCdnDomains = true;  // 客户端上传时设为true，服务端上传时设为false
+//	    if(WP_QINIU_USE_HTTPS)
+//	        $config->useHTTPS = true;
+//        $config->zone = Zone::zone2();
 
 	    return $config->getUpHost(WP_QINIU_ACCESS_KEY, WP_QINIU_STORAGE_BUCKET);
     }

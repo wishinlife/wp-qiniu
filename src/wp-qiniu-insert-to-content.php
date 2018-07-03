@@ -58,6 +58,7 @@ function wp_qiniu_storage_media_tab_box() {
                 <button id="btn-rename" class="button" disabled="disabled">重命名</button>
                 <button id="btn-clear" class="button" disabled="disabled">取消选择</button>
                 <button id="btn-delete" class="button" disabled="disabled">删除</button>
+                <button id="btn-copy" class="button" style="display: none;">复制链接</button>
                 <button id="btn-insert" class="button-primary" disabled="disabled">插入</button>
                 <span style="margin-left:30px;">
                     排序：<input type="radio" name="wp-qiniu-file-orderby" title="" value="ctime-desc" checked/>时间倒排
@@ -93,8 +94,11 @@ function wp_qiniu_storage_media_tab_box() {
                             <tr>
                                 <th class="col-md-4">文件名</th>
                                 <th class="col-md-2">文件大小</th>
-                                <th class="col-md-4">详细信息</th>
-                                <th class="col-md-2"><button class="button right" id="clear-upload-info">清除已完成文件列表</button></th>
+                                <th class="col-md-2">详细信息</th>
+                                <th class="col-md-4">
+                                    <button class="button right" id="uploader-ope" style="display: none;margin-left: 15px;background-color: #0085ba;color:white;">开始上传</button>
+                                    <button class="button right" id="clear-upload-info">清除已完成文件列表</button>
+                                </th>
                             </tr>
                         </thead>
                         <tbody id="fsUploadProgress"></tbody>
@@ -111,6 +115,7 @@ function wp_qiniu_storage_media_tab_box() {
         <input type="hidden" id="wp-qiniu-watermark-style" value="<?php echo esc_attr(WP_QINIU_WATERMARK_STYLE);?>">
         <input type="hidden" id="wp-qiniu-style-split-char" value="<?php echo esc_attr(WP_QINIU_STYLE_SPLIT_CHAR);?>">
         <input type="hidden" id="wp-qiniu-plugin-url" value="<?php echo esc_attr(plugins_url('/',WP_QINIU_PLUGIN_NAME));?>">
+        <input type="hidden" id="wp-qiniu-upload-url" value="<?php echo esc_attr(wp_qiniu_get_upload_url());?>">
         <input type="hidden" id="wp-admin-ajax-url" value="<?php echo esc_attr(admin_url('admin-ajax.php'));?>">
 		<input type="hidden" id="wp_qiniu_ajax_nonce" value="<?php echo wp_create_nonce('wp_qiniu_ajax_nonce'); ?>"/>
     <?php else:

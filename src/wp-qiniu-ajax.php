@@ -140,7 +140,7 @@ function wp_qiniu_upload_callback_ajax() {
 		$resp = array('status' => 'success','id' => $id, 'pid' => $pid, 'isdir' => 0, 'fname' => $fname, 'fsize' => $fsize, 'mimeType' => $mimeType,
 			'ctime' => $ctime, 'format' => $format, 'width' => $width, 'height' => $height, 'key' => $key, 'hash' => $hash, 'url' => $url);
 	} else {
-		$resp = array('status' => 'failed', 'error' => '回调验证失败。');
+		$resp = array('status' => 'failed', 'error' => '回调验证失败。', 'ret' => 'failed');
 	}
 	echo json_encode($resp);
 	exit;
