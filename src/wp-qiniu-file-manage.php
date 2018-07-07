@@ -19,7 +19,7 @@ function wp_qiniu_storage_add_help_page_storage() {
 			<ul>
 				<li>点击上传按钮可上传文件至七牛云存储，你上传完文件之后，点击返回按钮在最末尾就可以看到刚上传完成的文件。</li>
 				<li>文件名、文件夹名请使用常规的命名方法，文件名中不能包含：<span style="color:red;font-weight: bolder">'.esc_html('`~!#$%&*()+=[]\{}|;\':",/<>?').'</span> 等特殊字符，不要有空格。</li>
-				<li>文件名中如含有以上特殊字符，将会被删除，空格将会被“-”替代，因此可能存在文件上传完成后本地文件名与云端文件名不一致的情况。</li>
+				<li>文件名中如含有以上特殊字符、空格，上传将会失败，且提示<span style="color:red;font-weight: bolder">“权限不足，拒绝访问”</span>。</li>
                 <li><span style="color:red;font-weight: bolder">文件及文件夹删除功能为永久性删除，删除后不可恢复，请谨慎使用！</span></li>
 			</ul>
 		</p>'

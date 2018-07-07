@@ -4,7 +4,7 @@
  * Plugin Name: WP-QINIU
  * Plugin URI: http://www.syncy.cn
  * Description: WP-QINIU主要功能就是把WordPress和七牛云存储连接在一起的插件。主要功能：1、将wordpress的数据库、文件备份到七牛对象云存储，以防止由于过失而丢失了网站数据；2、把七牛对象云存储作为网站的主要存储空间，存放图片、附件，解决网站空间不够用的烦恼；3、可在网站内直接引用七牛云存储上的文件，在写文章时直接点击插入媒体，选择要插入的图片、音频、视频、附件等即可，增强wordpress用户使用七牛云存储的方便性；4、可在wordpress中以目录的形式管理七牛云存储的文件，并可以通过修改文件夹名称来批量修改七牛云存储中文件的Key，方便用户管理文件。
- * Version: 2.0.1
+ * Version: 2.0.2
  * Text Domain: wp-qiniu
  * Author:   <a href="http://www.syncy.cn/">WishInLife</a>
  * Author URI: http://www.syncy.cn
@@ -18,7 +18,7 @@
  */
 // 初始化固定值常量
 define('WP_QINIU_PLUGIN_NAME', __FILE__);
-define('WP_QINIU_PLUGIN_VER', '2.0.1');
+define('WP_QINIU_PLUGIN_VER', '2.0.2');
 require_once( dirname( __FILE__ ) . '/lib/autoload.php' );
 use Qiniu\Auth;		// 引入鉴权类
 use Qiniu\Storage\UploadManager;	// 引入上传类
@@ -43,6 +43,7 @@ define('WP_QINIU_STYLE_SPLIT_CHAR', get_option('wp_qiniu_style_split_char'));
 define('WP_QINIU_IMAGE_PROTECT', get_option('wp_qiniu_image_protect'));
 define('WP_QINIU_ONLY_LOGOUSER', get_option('wp_qiniu_only_logouser'));
 define('WP_QINIU_USE_HTTPS', get_option('wp_qiniu_use_https'));
+define('WP_QINIU_NOT_CALLBACK', true);  // 不让七牛回调服务器，由客户端提交上传成功的文件信息
 
 define('WP_QINIU_SITE_DOMAIN', $_SERVER['HTTP_HOST']);
 //define('WP_QINIU_IS_WIN', strpos(PHP_OS,'WIN')!==false);

@@ -4,7 +4,7 @@ Donate link: http://www.syncy.cn/index.php/donate/
 Tags:wp-qiniu, backup, sync, qiniu, object cloud storage, 七牛云存储
 Requires at least: 4.5.0
 Tested up to: 4.9.6
-Stable tag: 2.0.1
+Stable tag: 2.0.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -56,6 +56,9 @@ WP-QINIU官方网站：http://www.syncy.cn
 4. screenshot-4.png
 
 == Changelog ==
+
+= 2.0.2 =
+* 1、修改了上传文件成功后的文件信息提交模式，由七牛服务器回调改为由客户端在文件上传成功后直接提交，解决部分用户七牛服务器回调失败的问题。
 
 = 2.0.1 =
 * 1、增加双击文件图标，可复制文件访问地址到剪贴板中的功能。

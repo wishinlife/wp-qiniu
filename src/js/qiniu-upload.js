@@ -340,8 +340,30 @@ jQuery(function($) {
                         $(this).remove();
                 });
             }
-            var progress = new FileProgress(file, 'fsUploadProgress');
-            progress.setComplete(info);
+            if(info.ncb){   // 非七牛回调服务器模式，
+                info.action = 'wp_qiniu_upload_complete';
+                info.nonce =ajaxNonce;
+                $.ajax({
+                    type: "GET",
+                    url: ajaxUrl,
+                    async : false,
+                    data: info,
+                    error: function (e) {
+                        alert('文件上传成功，但提交文件信息失败！');
+                    },
+                    success: function (res) {
+                        if (res.status === 'success') {
+                            var progress = new FileProgress(file, 'fsUploadProgress');
+                            progress.setComplete(res);
+                        } else {
+                            alert(res.error);
+                        }
+                    }
+                });
+            } else {
+                var progress = new FileProgress(file, 'fsUploadProgress');
+                progress.setComplete(info);
+            }
         }
         function initFileInfo(file) {
             var localFileInfo = JSON.parse(localStorage.getItem(file.name))|| [];

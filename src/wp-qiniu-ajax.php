@@ -63,30 +63,41 @@ function wp_qiniu_get_uptoken_ajax(){
 	elseif(in_array($fileext,array('asf','avi','flv','mkv','mov','mp4','wmv','3gp','3g2','mpeg','ts','rm','rmvb','m3u8'))){
 		$filetype = 'video';
 	}
-//	$url = wp_qiniu_get_download_url($key, 14400);
-	if($filetype == 'image'){
-		$callBackBody = 'pid='.$pid.'&fsize=$(fsize)&format=$(imageInfo.format)&width=$(imageInfo.width)&height=$(imageInfo.height)&mimeType=$(mimeType)&key=$(key)&hash=$(etag)';
-//		$returnBody = '{"url":"'.$url.'", "pid": $(x:pid), "fname": '.$fname.', "fsize": $(fsize), "key": $(key), "hash": $(etag), "id": 10, "ctime": '.time()
-//							. ', "format": $(imageInfo.format), "width": $(imageInfo.width), "height": $(imageInfo.height), "mimeType": $(mimeType),"overwrite":$(x:overwrite)}';		//直接返回给上传端，不回调服务器
-	} elseif($filetype == 'video') {
-		$callBackBody = 'pid='.$pid.'&fsize=$(fsize)&format=$(avinfo.format.format_long_name)&width=$(avinfo.video.width)&height=$(avinfo.video.height)&mimeType=$(mimeType)&key=$(key)&hash=$(etag)';
-//		$returnBody = '{"url":"'.$url.'", "pid": $(x:pid), "fname": '.$fname.', "fsize": $(fsize), "key": $(key), "hash": $(etag), "id": 10, "ctime": '.time()
-//							. ', "format": $(avinfo.format.format_long_name), "width": $(avinfo.video.width), "height": $(avinfo.video.height), "mimeType": $(mimeType),"overwrite":$(x:overwrite)}';		//直接返回给上传端，不回调服务器
-	} else {
-		$callBackBody = 'pid='.$pid.'&fsize=$(fsize)&format=&width=0&height=0&mimeType=$(mimeType)&key=$(key)&hash=$(etag)';
-//		$returnBody = '{"url":"'.$url.'", "pid": $(x:pid), "fname": '.$fname.', "fsize": $(fsize), "key": $(key), "hash": $(etag), "id": 10, "ctime": '.time(). ', "mimeType": $(mimeType),"width":0,"height":0,"overwrite":$(x:overwrite)}';	//直接返回给上传端，不回调服务器
-	}
 
 	// 上传文件到七牛后， 七牛将文件名和文件大小回调给业务服务器.
 	// 可参考文档: http://developer.qiniu.com/docs/v6/api/reference/security/put-policy.html
-	$policy = array(
-		'scop' => $scope,
-		'deadline' => $deadline,
-		'callbackBodyType' => 'application/x-www-form-urlencoded',
-		'callbackUrl' => admin_url('admin-ajax.php?action=wp_qiniu_upload_callback'),
-		'callbackBody' => $callBackBody
-//		'returnBody' => $returnBody
-	);
+    if(WP_QINIU_NOT_CALLBACK) {
+        $url = wp_qiniu_get_download_url($key, 14400);
+        if($filetype == 'image'){
+            $returnBody = '{"ncb":' . WP_QINIU_NOT_CALLBACK . ',"url":"' . $url . '", "pid": ' . $pid . ', "fname": "' . $fname . '", "fsize": $(fsize), "key": $(key), "hash": $(etag), "ctime": ' . time()
+                . ', "format": $(imageInfo.format), "width": $(imageInfo.width), "height": $(imageInfo.height), "mimeType": $(mimeType),"overwrite":$(x:overwrite)}';        //直接返回给上传端，不回调服务器
+        } elseif($filetype == 'video') {
+            $returnBody = '{"ncb":' . WP_QINIU_NOT_CALLBACK . ',"url":"' . $url . '", "pid": ' . $pid . ', "fname": "' . $fname . '", "fsize": $(fsize), "key": $(key), "hash": $(etag), "ctime": ' . time()
+                . ', "format": $(avinfo.format.format_long_name), "width": $(avinfo.video.width), "height": $(avinfo.video.height), "mimeType": $(mimeType),"overwrite":$(x:overwrite)}';        //直接返回给上传端，不回调服务器
+        } else {
+            $returnBody = '{"ncb":' . WP_QINIU_NOT_CALLBACK . ',"url":"' . $url . '", "pid": ' . $pid . ', "fname": "' . $fname . '", "fsize": $(fsize),"format":"", "key": $(key), "hash": $(etag), "ctime": ' . time() . ', "mimeType": $(mimeType),"width":0,"height":0,"overwrite":$(x:overwrite)}';    //直接返回给上传端，不回调服务器
+        }
+        $policy = array(
+            'scop' => $scope,
+            'deadline' => $deadline,
+            'returnBody' => $returnBody
+        );
+    } else {
+        if($filetype == 'image'){
+            $callBackBody = 'pid='.$pid.'&fsize=$(fsize)&format=$(imageInfo.format)&width=$(imageInfo.width)&height=$(imageInfo.height)&mimeType=$(mimeType)&key=$(key)&hash=$(etag)';
+        } elseif($filetype == 'video') {
+            $callBackBody = 'pid='.$pid.'&fsize=$(fsize)&format=$(avinfo.format.format_long_name)&width=$(avinfo.video.width)&height=$(avinfo.video.height)&mimeType=$(mimeType)&key=$(key)&hash=$(etag)';
+        } else {
+            $callBackBody = 'pid='.$pid.'&fsize=$(fsize)&format=&width=0&height=0&mimeType=$(mimeType)&key=$(key)&hash=$(etag)';
+        }
+        $policy = array(
+            'scop' => $scope,
+            'deadline' => $deadline,
+            'callbackBodyType' => 'application/x-www-form-urlencoded',
+            'callbackUrl' => admin_url('admin-ajax.php?action=wp_qiniu_upload_callback'),
+            'callbackBody' => $callBackBody
+        );
+    }
 	global $auth;
 	$uptoken = $auth->uploadToken($bucket, $key, $expires, $policy);
 	$ret = array('status' => 'success','uptoken' => $uptoken, 'fname' => $fname, 'exist' => $exist);
@@ -217,6 +228,110 @@ function wp_qiniu_upload_callback_ajax2() {
 		echo json_encode($resp);
 	}
 	exit;
+}
+
+// 客户端上传文件成功，提交文件信息
+add_action('wp_ajax_wp_qiniu_upload_complete','wp_qiniu_upload_complete');
+function wp_qiniu_upload_complete(){
+    // 获取文件信息
+    if(isset($_GET['pid']) && is_numeric($_GET['pid']) && $_GET['pid'] >= 0){
+        $pid = (int)$_GET['pid'];
+    }else{
+        $resp = array('status' => 'failed','error' => '必须指定父级文件夹！');
+        echo json_encode($resp);
+        exit;
+    }
+    if(isset($_GET['fname']) && !empty($_GET['fname'])){
+        $fname = sanitize_file_name($_GET['fname']);
+        if($fname == ''){
+            $resp = array('status' => 'failed','error' => '文件名不合要求！');
+            echo json_encode($resp);
+            exit;
+        }
+    }else{
+        $resp = array('status' => 'failed','error' => '文件名不能为空！');
+        echo json_encode($resp);
+        exit;
+    }
+    if(isset($_GET['fsize']) && is_numeric($_GET['fsize']) && $_GET['fsize'] >= 0){
+        $fsize = (int)$_GET['fsize'];
+    }else{
+        $resp = array('status' => 'failed','error' => '必须给定文件大小！');
+        echo json_encode($resp);
+        exit;
+    }
+    if(isset($_GET['width']) && is_numeric($_GET['width']) && $_GET['width'] >= 0){
+        $width = (int)$_GET['width'];
+    }else{
+        $resp = array('status' => 'failed','error' => '图像宽异常！');
+        echo json_encode($resp);
+        exit;
+    }
+    if(isset($_GET['height']) && is_numeric($_GET['height']) && $_GET['height'] >= 0){
+        $height = (int)$_GET['height'];
+    }else{
+        $resp = array('status' => 'failed','error' => '图像高异常！');
+        echo json_encode($resp);
+        exit;
+    }
+    if(isset($_GET['mimeType'])){
+        $mimeType = $_GET['mimeType'];
+    }else{
+        $resp = array('status' => 'failed','error' => 'mimeType信息异常！');
+        echo json_encode($resp);
+        exit;
+    }
+    if(isset($_GET['key']) && !empty($_GET['key'])){
+        $key = $_GET['key'];
+        if($key == ''){
+            $resp = array('status' => 'failed','error' => '文件Key不合要求！');
+            echo json_encode($resp);
+            exit;
+        }
+    }else{
+        $resp = array('status' => 'failed','error' => '文件Key不能为空！');
+        echo json_encode($resp);
+        exit;
+    }
+    if(isset($_GET['format'])){
+        $format = $_GET['format'];
+    }else{
+        $resp = array('status' => 'failed','error' => '文件格式信息异常！');
+        echo json_encode($resp);
+        exit;
+    }
+    if(isset($_GET['hash'])){
+        $hash = $_GET['hash'];
+    }else{
+        $resp = array('status' => 'failed','error' => '文件hash信息异常！');
+        echo json_encode($resp);
+        exit;
+    }
+
+    header('Content-Type: application/json');
+
+    set_php_setting('timezone');
+    $ctime = date('Y-m-d H:i:s',time());
+
+    global $wpdb;
+    $table_name = $wpdb->prefix.'wp_qiniu_files';
+    $ok = $wpdb->replace($table_name,array('pid' => $pid, 'isdir' => 0, 'fname' => $fname, 'fsize' => $fsize, 'ctime' => $ctime, 'width' => $width, 'height' => $height, 'mimeType' => $mimeType),
+        array('%d', '%d', '%s', '%d', '%s', '%d', '%d', '%s'));
+    $id = $wpdb->insert_id;
+
+    if (!$ok)
+    {
+        $err = $wpdb->last_error;
+        $resp = array('status' => 'false', 'error' => $err);
+        echo json_encode($resp);
+        exit;
+    }
+    $url = wp_qiniu_get_download_url($key, 3600);
+    $resp = array('status' => 'success','id' => $id, 'pid' => $pid, 'isdir' => 0, 'fname' => $fname, 'fsize' => $fsize, 'mimeType' => $mimeType,
+        'ctime' => $ctime, 'format' => $format, 'width' => $width, 'height' => $height, 'key' => $key, 'hash' => $hash, 'url' => $url);
+
+    echo json_encode($resp);
+    exit;
 }
 
 // 用户端获取文件下载链接
