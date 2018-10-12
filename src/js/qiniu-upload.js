@@ -123,11 +123,13 @@ jQuery(function($) {
             }
             file.startTime = new Date();
             file.speed = file.speed || 0;
-            var key = file.path + file.name;
-            file.key = key;
-            putExtra.params["x:name"] = key.split(".")[0];
             var id = file.id;
             token = getUpToken(uploader, file);
+            var key = file.key;
+            console.log('file.key', file.key)
+            putExtra.params["x:name"] = key.split(".")[0];
+
+
             // chunk_size = uploader.getOption("chunk_size");
 
             var directUpload = function() {
@@ -286,7 +288,7 @@ jQuery(function($) {
         function getUpToken(uploader, file) {
             var token = '';
             $.ajax({
-                type: "GET",
+                type: "POST",
                 url: ajaxUrl,
                 async : false,
                 data: {
@@ -297,6 +299,7 @@ jQuery(function($) {
                 },
                 error: function (e) {
                     alert('获取文件上传token失败！');
+                    // console.log(e);
                 },
                 success: function (res) {
                     // var res = JSON.parse(response);
@@ -311,10 +314,13 @@ jQuery(function($) {
                             }
                         } else
                             file.overwrite = false;
-                        file.fname = res.fname;
                         token = res.uptoken;
+                        file.fname = res.fname;
+                        file.key = file.path + file.fname;
+                        // console.log(res)
                     } else {
                         alert(res.error);
+                        // console.log(res);
                     }
                 }
             });
@@ -344,7 +350,7 @@ jQuery(function($) {
                 info.action = 'wp_qiniu_upload_complete';
                 info.nonce =ajaxNonce;
                 $.ajax({
-                    type: "GET",
+                    type: "POST",
                     url: ajaxUrl,
                     async : false,
                     data: info,
@@ -713,11 +719,11 @@ jQuery(function($) {
             var domain = storageDomain;
             var url, str;
             if (res.url) {
-                url = encodeURI(res.url);
+                url = res.url;
             } else {
-                url = domain + encodeURI(res.key);
+                url = domain + res.key;
             }
-            str = "<div><strong>原文件链接：:</strong><a href=" + url + " target='_blank' > " + domain + res.key + "</a></div>" + 
+            str = "<div><strong>原文件链接：</strong><a href=" + url + " target='_blank' > " + domain + res.key + "</a></div>" +
                     "<div class=hash><strong>文件Hash值：</strong>" + res.hash + "</div>" + 
                     "<div class=hash><strong>文件Key：</strong>" + res.key + "</div>" +
                     "<br/><div><strong></strong></div>";

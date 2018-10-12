@@ -126,7 +126,7 @@ jQuery(function($){
         if(interval != 'undefined')
             clearInterval(interval);
 		$.ajax({
-			type: "get",
+			type: "POST",
 			//timeout: 3000,
 			dataType: "json",
 			url: $('#wp-admin-ajax-url').val(),
@@ -346,7 +346,7 @@ jQuery(function($){
 			workPath = loadmore.attr('data-current-path');
 
 		$.ajax({
-			type: "get",
+			type: "POST",
 			//timeout: 3000,
 			dataType: "json",
 			url: $('#wp-admin-ajax-url').val(),
@@ -520,7 +520,7 @@ jQuery(function($){
 		if(!nameCheck)
 			return;
 		$.ajax({
-			type: "get",
+			type: "POST",
 			//timeout: 3000,
 			dataType: "json",
 			url: $('#wp-admin-ajax-url').val(),
@@ -590,7 +590,7 @@ jQuery(function($){
             clearInterval(interval);
 
         $.ajax({
-            type: "get",
+            type: "POST",
             //timeout: 3000,
             dataType: "json",
             url: $('#wp-admin-ajax-url').val(),

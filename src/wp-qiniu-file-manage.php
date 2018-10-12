@@ -18,8 +18,8 @@ function wp_qiniu_storage_add_help_page_storage() {
 		'content'	=> '<p>
 			<ul>
 				<li>点击上传按钮可上传文件至七牛云存储，你上传完文件之后，点击返回按钮在最末尾就可以看到刚上传完成的文件。</li>
-				<li>文件名、文件夹名请使用常规的命名方法，文件名中不能包含：<span style="color:red;font-weight: bolder">'.esc_html('`~!#$%&*()+=[]\{}|;\':",/<>?').'</span> 等特殊字符，不要有空格。</li>
-				<li>文件名中如含有以上特殊字符、空格，上传将会失败，且提示<span style="color:red;font-weight: bolder">“权限不足，拒绝访问”</span>。</li>
+				<li>文件名、文件夹名请使用常规的命名方法，文件名中不能包含：<span style="color:red;font-weight: bolder">'.esc_html('\/:*?"<>|$').'</span> 特殊字符，以及首位不能存在空格、Tab等空白字符。</li>
+				<li>文件名中如含有以上特殊字符、首位空格等，系统将会剔除此类字符，但文件可上传成功。</li>
                 <li><span style="color:red;font-weight: bolder">文件及文件夹删除功能为永久性删除，删除后不可恢复，请谨慎使用！</span></li>
 			</ul>
 		</p>'
@@ -152,7 +152,7 @@ function wp_qiniu_admin_load_resources() {
 
         wp_register_script('clipboard.js', plugins_url('js/clipboard.min.js',WP_QINIU_PLUGIN_NAME), array('jquery'), '2.0.0');
         wp_enqueue_script('clipboard.js');
-        wp_register_script('qiniu.js', plugins_url('js/qiniu.min.js',WP_QINIU_PLUGIN_NAME), array('jquery', 'plupload'), '2.3.0');
+        wp_register_script('qiniu.js', plugins_url('js/qiniu.min.js',WP_QINIU_PLUGIN_NAME), array('jquery', 'plupload'), '2.5.1');
 		wp_enqueue_script('qiniu.js');
 		wp_register_script('file-manage.js', plugins_url('js/file-manage.min.js',WP_QINIU_PLUGIN_NAME), array('jquery', 'plupload','qiniu.js', 'clipboard.js'), WP_QINIU_PLUGIN_VER);
 		wp_enqueue_script('file-manage.js');

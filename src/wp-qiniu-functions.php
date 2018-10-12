@@ -43,6 +43,38 @@ if (!defined('WP_QINIU_FUNCTIONS_LOAD')) {
 		return esc_url($retUrl);
 	}
 
+    /**
+     * PHP实现javascript的encodeURI
+     */
+    function encodeURI($url) {
+        // http://php.net/manual/en/function.rawurlencode.php
+        // https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/encodeURI
+        $unescaped = array(
+            '%2D'=>'-','%5F'=>'_','%2E'=>'.','%21'=>'!', '%7E'=>'~',
+            '%2A'=>'*', '%27'=>"'", '%28'=>'(', '%29'=>')'
+        );
+        $reserved = array(
+            '%3B'=>';','%2C'=>',','%2F'=>'/','%3F'=>'?','%3A'=>':',
+            '%40'=>'@','%26'=>'&','%3D'=>'=','%2B'=>'+','%24'=>'$'
+        );
+        $score = array(
+            '%23'=>'#'
+        );
+        return strtr(rawurlencode($url), array_merge($reserved,$unescaped,$score));
+    }
+
+    /**
+     * 去除文件名中的不合规字符及首尾空格
+     */
+    function escape_file_name($file_name) {
+        $unescaped = array(
+            '\t'=>'','\n'=>'','\r'=>'','\0'=>'','\x0B'=>'',
+            '/'=>'','\\'=>'',':'=>'','*'=>'', '?'=>'',
+            '"'=>'', '<'=>"", '>'=>'', '|'=>'' , '$'=>''
+        );
+        return strtr(trim($file_name), $unescaped);
+    }
+
 	function wp_qiniu_get_upload_url() {
 	    $config = new Config();
 	    $config->useCdnDomains = true;  // 客户端上传时设为true，服务端上传时设为false
@@ -254,22 +286,25 @@ if (!defined('WP_QINIU_FUNCTIONS_LOAD')) {
 				}
 			} while ( $marker );
 
-			// 修改七牛文件名
-			$rename = array();
-			$oldLen = strlen( $oldprefix );
-			foreach ( $filelists as $file ) {
-				$newkey = $newprefix . substr( $file['key'], $oldLen );
-				$rename[$file['key']] = $newkey;
-			}
-			$renameOp = $bucketMgr->buildBatchRename( WP_QINIU_STORAGE_BUCKET, $rename );
-			list($ret, $err) = $bucketMgr->batch( $renameOp );
-			if($err !== null)
-				return array( 'status' => 'false', 'error' => '重命名七牛云存储文件失败：'.$err->code().'-'.$err->message() );
-			$ok = true;
-			foreach ($ret as $fileret){
-				if($fileret['code'] !== 200 && $fileret['code'] !== 612)
-					$ok &= false;
-			}
+            $ok = true;
+			if(count($filelists) > 0) {
+                // 修改七牛文件名
+                $rename = array();
+                $oldLen = strlen($oldprefix);
+                foreach ($filelists as $file) {
+                    $newkey = $newprefix . substr($file['key'], $oldLen);
+                    $rename[$file['key']] = $newkey;
+                }
+                $renameOp = $bucketMgr->buildBatchRename(WP_QINIU_STORAGE_BUCKET, $rename, true);
+                list($ret, $err) = $bucketMgr->batch($renameOp);
+                if ($err !== null)
+                    return array('status' => 'false', 'error' => '重命名七牛云存储文件失败：' . $err->code() . '-' . $err->message());
+
+                foreach ($ret as $fileret) {
+                    if ($fileret['code'] !== 200 && $fileret['code'] !== 612)
+                        $ok &= false;
+                }
+            }
 			if(!$ok)
 				return array( 'status' => 'false', 'error' => '七牛云存储部分文件未能完成重命名操作，请重做此操作，否则将造成网站记录与存储文件名不一致的情况。' );
 			// 更新数据库记录

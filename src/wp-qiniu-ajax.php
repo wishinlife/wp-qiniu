@@ -12,15 +12,15 @@ function wp_qiniu_get_uptoken_ajax(){
 	
 	$bucket = WP_QINIU_STORAGE_BUCKET;// 要上传的空间
 	$scope = $bucket;
-	if(isset($_GET['pid']) && is_numeric($_GET['pid']) && $_GET['pid'] >= 0){
-		$pid = (int)$_GET['pid'];
+	if(isset($_REQUEST['pid']) && is_numeric($_REQUEST['pid']) && $_REQUEST['pid'] >= 0){
+		$pid = (int)$_REQUEST['pid'];
 	}else{
 		$resp = array('status' => 'failed','error' => '必须指定父级文件夹！');
 		echo json_encode($resp);
 		exit;
 	}
-	if(isset($_GET['fname']) && !empty($_GET['fname'])){
-		$fname = sanitize_file_name($_GET['fname']);
+	if(isset($_REQUEST['fname']) && !empty($_REQUEST['fname'])){
+		$fname = escape_file_name($_REQUEST['fname']);
         if($fname == ''){
             $resp = array('status' => 'failed','error' => '文件名不合要求！');
             echo json_encode($resp);
@@ -39,7 +39,6 @@ function wp_qiniu_get_uptoken_ajax(){
 	}
 	$key = $fpath.$fname;
 	$scope .= ':'.$key;
-
 
 	global $wpdb;
 	$table_name = $wpdb->prefix.'wp_qiniu_files';
@@ -234,15 +233,15 @@ function wp_qiniu_upload_callback_ajax2() {
 add_action('wp_ajax_wp_qiniu_upload_complete','wp_qiniu_upload_complete');
 function wp_qiniu_upload_complete(){
     // 获取文件信息
-    if(isset($_GET['pid']) && is_numeric($_GET['pid']) && $_GET['pid'] >= 0){
-        $pid = (int)$_GET['pid'];
+    if(isset($_REQUEST['pid']) && is_numeric($_REQUEST['pid']) && $_REQUEST['pid'] >= 0){
+        $pid = (int)$_REQUEST['pid'];
     }else{
         $resp = array('status' => 'failed','error' => '必须指定父级文件夹！');
         echo json_encode($resp);
         exit;
     }
-    if(isset($_GET['fname']) && !empty($_GET['fname'])){
-        $fname = sanitize_file_name($_GET['fname']);
+    if(isset($_REQUEST['fname']) && !empty($_REQUEST['fname'])){
+        $fname = $_REQUEST['fname'];
         if($fname == ''){
             $resp = array('status' => 'failed','error' => '文件名不合要求！');
             echo json_encode($resp);
@@ -253,36 +252,36 @@ function wp_qiniu_upload_complete(){
         echo json_encode($resp);
         exit;
     }
-    if(isset($_GET['fsize']) && is_numeric($_GET['fsize']) && $_GET['fsize'] >= 0){
-        $fsize = (int)$_GET['fsize'];
+    if(isset($_REQUEST['fsize']) && is_numeric($_REQUEST['fsize']) && $_REQUEST['fsize'] >= 0){
+        $fsize = (int)$_REQUEST['fsize'];
     }else{
         $resp = array('status' => 'failed','error' => '必须给定文件大小！');
         echo json_encode($resp);
         exit;
     }
-    if(isset($_GET['width']) && is_numeric($_GET['width']) && $_GET['width'] >= 0){
-        $width = (int)$_GET['width'];
+    if(isset($_REQUEST['width']) && is_numeric($_REQUEST['width']) && $_REQUEST['width'] >= 0){
+        $width = (int)$_REQUEST['width'];
     }else{
         $resp = array('status' => 'failed','error' => '图像宽异常！');
         echo json_encode($resp);
         exit;
     }
-    if(isset($_GET['height']) && is_numeric($_GET['height']) && $_GET['height'] >= 0){
-        $height = (int)$_GET['height'];
+    if(isset($_REQUEST['height']) && is_numeric($_REQUEST['height']) && $_REQUEST['height'] >= 0){
+        $height = (int)$_REQUEST['height'];
     }else{
         $resp = array('status' => 'failed','error' => '图像高异常！');
         echo json_encode($resp);
         exit;
     }
-    if(isset($_GET['mimeType'])){
-        $mimeType = $_GET['mimeType'];
+    if(isset($_REQUEST['mimeType'])){
+        $mimeType = $_REQUEST['mimeType'];
     }else{
         $resp = array('status' => 'failed','error' => 'mimeType信息异常！');
         echo json_encode($resp);
         exit;
     }
-    if(isset($_GET['key']) && !empty($_GET['key'])){
-        $key = $_GET['key'];
+    if(isset($_REQUEST['key']) && !empty($_REQUEST['key'])){
+        $key = $_REQUEST['key'];
         if($key == ''){
             $resp = array('status' => 'failed','error' => '文件Key不合要求！');
             echo json_encode($resp);
@@ -293,15 +292,15 @@ function wp_qiniu_upload_complete(){
         echo json_encode($resp);
         exit;
     }
-    if(isset($_GET['format'])){
-        $format = $_GET['format'];
+    if(isset($_REQUEST['format'])){
+        $format = $_REQUEST['format'];
     }else{
         $resp = array('status' => 'failed','error' => '文件格式信息异常！');
         echo json_encode($resp);
         exit;
     }
-    if(isset($_GET['hash'])){
-        $hash = $_GET['hash'];
+    if(isset($_REQUEST['hash'])){
+        $hash = $_REQUEST['hash'];
     }else{
         $resp = array('status' => 'failed','error' => '文件hash信息异常！');
         echo json_encode($resp);
@@ -344,8 +343,8 @@ function wp_qiniu_get_download_url_nopriv(){		// 用户未登录，返回401错�
 add_action('wp_ajax_wp_qiniu_get_download_url','wp_qiniu_get_download_url_ajax');
 function wp_qiniu_get_download_url_ajax(){
 	check_ajax_referer('wp_qiniu_ajax_nonce', 'nonce');
-	if(isset($_GET['key']) && !empty($_GET['key'])){
-		$key = sanitize_text_field($_GET['key']);
+	if(isset($_REQUEST['key']) && !empty($_REQUEST['key'])){
+		$key = escape_file_name($_REQUEST['key']);
 	}else {
 		$resp = array('status' => 'failed','error' => '下载文件的key不能为空！');
 		echo json_encode($resp);
@@ -367,25 +366,25 @@ function wp_qiniu_list_files_nopriv(){		// 用户未登录，返回401错误
 add_action('wp_ajax_wp_qiniu_list_files','wp_qiniu_list_files_ajax');
 function wp_qiniu_list_files_ajax() {
 	check_ajax_referer('wp_qiniu_ajax_nonce', 'nonce');
-	if(isset($_GET['pid']) && is_numeric($_GET['pid']) && $_GET['pid'] >= 0){
-		$pid = (int)$_GET['pid'];
+	if(isset($_REQUEST['pid']) && is_numeric($_REQUEST['pid']) && $_REQUEST['pid'] >= 0){
+		$pid = (int)$_REQUEST['pid'];
 	}else{
 		$resp = array('status' => 'failed','error' => '必须指定父级文件夹！');
 		echo json_encode($resp);
 		exit;
 	}
-	if(isset($_GET['paged']) && is_numeric($_GET['paged']) && $_GET['paged'] > 1){
-		$paged = (int)$_GET['paged'];
+	if(isset($_REQUEST['paged']) && is_numeric($_REQUEST['paged']) && $_REQUEST['paged'] > 1){
+		$paged = (int)$_REQUEST['paged'];
 	}else{
 		$paged = 1;
 	}
-	if(isset($_GET['pagesize']) && is_numeric($_GET['pagesize']) && $_GET['pagesize'] > 1){
-		$pagesize = (int)$_GET['pagesize'];
+	if(isset($_REQUEST['pagesize']) && is_numeric($_REQUEST['pagesize']) && $_REQUEST['pagesize'] > 1){
+		$pagesize = (int)$_REQUEST['pagesize'];
 	}else{
 		$pagesize = 100;
 	}
-	if(isset($_GET['orderby']) && !empty($_GET['orderby'])){
-		$orderby = sanitize_sql_orderby(str_replace('-',' ',$_GET['orderby']));
+	if(isset($_REQUEST['orderby']) && !empty($_REQUEST['orderby'])){
+		$orderby = sanitize_sql_orderby(str_replace('-',' ',$_REQUEST['orderby']));
     }else{
 		$orderby = 'ctime desc';
     }
@@ -417,15 +416,15 @@ function wp_qiniu_create_floder_nopriv(){		// 用户未登录，返回401错误
 add_action('wp_ajax_wp_qiniu_create_floder', 'wp_qiniu_create_floder_ajax');
 function wp_qiniu_create_floder_ajax() {
 	check_ajax_referer('wp_qiniu_ajax_nonce', 'nonce');
-	if(isset($_GET['pid']) && is_numeric($_GET['pid']) && $_GET['pid'] >= 0){
-		$pid = (int)$_GET['pid'];
+	if(isset($_REQUEST['pid']) && is_numeric($_REQUEST['pid']) && $_REQUEST['pid'] >= 0){
+		$pid = (int)$_REQUEST['pid'];
 	}else{
 		$resp = array('status' => 'failed','error' => '必须指定父级文件夹！');
 		echo json_encode($resp);
 		exit;
 	}
-	if(isset($_GET['dirname']) && !empty($_GET['dirname'])){
-		$fname = sanitize_file_name($_GET['dirname']);
+	if(isset($_REQUEST['dirname']) && !empty($_REQUEST['dirname'])){
+		$fname = escape_file_name($_REQUEST['dirname']);
         if($fname == ''){
             $resp = array('status' => 'failed','error' => '文件名不合要求！');
             echo json_encode($resp);
@@ -518,15 +517,15 @@ function wp_qiniu_file_rename_nopriv(){		// 用户未登录，返回401错误
 add_action('wp_ajax_wp_qiniu_file_rename', 'wp_qiniu_file_rename_ajax');
 function wp_qiniu_file_rename_ajax() {
 	check_ajax_referer('wp_qiniu_ajax_nonce', 'nonce');
-	if(isset($_GET['id']) && is_numeric($_GET['id']) && $_GET['id'] >= 0){
-		$id = (int)$_GET['id'];
+	if(isset($_REQUEST['id']) && is_numeric($_REQUEST['id']) && $_REQUEST['id'] >= 0){
+		$id = (int)$_REQUEST['id'];
 	}else{
 		$resp = array('status' => 'failed','error' => '参数错误：未提供待修改文件或文件夹ID！');
 		echo json_encode($resp);
 		exit;
 	}
-	if(isset($_GET['newname']) && !empty($_GET['newname'])){
-		$newname = sanitize_file_name($_GET['newname']);
+	if(isset($_REQUEST['newname']) && !empty($_REQUEST['newname'])){
+		$newname = escape_file_name($_REQUEST['newname']);
         if($newname == ''){
             $resp = array('status' => 'failed','error' => '新名称不符合要求！');
             echo json_encode($resp);
@@ -558,8 +557,8 @@ function wp_qiniu_file_sync_nopriv(){		// 用户未登录，返回401错误
 add_action('wp_ajax_wp_qiniu_file_sync', 'wp_qiniu_file_sync_ajax');
 function wp_qiniu_file_sync_ajax() {
 	check_ajax_referer('wp_qiniu_ajax_nonce', 'nonce');
-	if(isset($_GET['pid']) && is_numeric($_GET['pid']) && $_GET['pid'] >= 0){
-		$pid = (int)$_GET['pid'];
+	if(isset($_REQUEST['pid']) && is_numeric($_REQUEST['pid']) && $_REQUEST['pid'] >= 0){
+		$pid = (int)$_REQUEST['pid'];
 	}else{
 		$resp = array('status' => 'failed','error' => '参数错误：未提供当前目录ID！');
 		echo json_encode($resp);

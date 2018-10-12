@@ -4,7 +4,7 @@ Donate link: http://www.syncy.cn/index.php/donate/
 Tags:wp-qiniu, backup, sync, qiniu, object cloud storage, 七牛云存储
 Requires at least: 4.5.0
 Tested up to: 4.9.6
-Stable tag: 2.0.2
+Stable tag: 2.0.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -56,6 +56,11 @@ WP-QINIU官方网站：http://www.syncy.cn
 4. screenshot-4.png
 
 == Changelog ==
+= 2.0.4 =
+* 1、文件夹及文件重命名时支持合法特殊字符，不支持的特殊字符包括：\/:*?"<>|$，以及制表符、回车、换行，文件名首位不支持空格。不合法字符，系统会自动剔除，文件可继续上传。
+
+= 2.0.3 =
+* 1、修复上传文件的文件名存在空格或特殊字符时，报权限不足的bug。目前创建的目录和重命名文件时还不允许存在特殊字符，系统会自动按照wordpress的文件名规范过滤掉空格和特殊字符。
 
 = 2.0.2 =
 * 1、修改了上传文件成功后的文件信息提交模式，由七牛服务器回调改为由客户端在文件上传成功后直接提交，解决部分用户七牛服务器回调失败的问题。
