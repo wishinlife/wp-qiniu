@@ -3,8 +3,8 @@ Contributors: wishinlife
 Donate link: http://www.syncy.cn/index.php/donate/
 Tags:wp-qiniu, backup, sync, qiniu, object cloud storage, 七牛云存储
 Requires at least: 4.5.0
-Tested up to: 4.9.6
-Stable tag: 2.0.4
+Tested up to: 4.9.8
+Stable tag: 2.0.5
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -56,6 +56,9 @@ WP-QINIU官方网站：http://www.syncy.cn
 4. screenshot-4.png
 
 == Changelog ==
+= 2.0.5 =
+* 1、修复了当wordpress站点启用https，但七牛云存储没有启用https支持时，上传文件失败的bug。
+
 = 2.0.4 =
 * 1、文件夹及文件重命名时支持合法特殊字符，不支持的特殊字符包括：\/:*?"<>|$，以及制表符、回车、换行，文件名首位不支持空格。不合法字符，系统会自动剔除，文件可继续上传。
 

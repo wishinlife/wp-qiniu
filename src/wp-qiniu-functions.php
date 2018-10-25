@@ -78,7 +78,9 @@ if (!defined('WP_QINIU_FUNCTIONS_LOAD')) {
 	function wp_qiniu_get_upload_url() {
 	    $config = new Config();
 	    $config->useCdnDomains = true;  // 客户端上传时设为true，服务端上传时设为false
-	    if(WP_QINIU_USE_HTTPS)
+
+        $useHttps = ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https')) ? true : false;
+	    if($useHttps)
 	        $config->useHTTPS = true;
 //        $config->zone = Zone::zone2();
 
